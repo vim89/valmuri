@@ -1,17 +1,18 @@
 package valmuri.http
 
 import valmuri.routing.Router
-import zio._
-import zio.http._
+import zio.{ZIO, ZIOAppDefault}
 
-object Server {
-  def start(router: Router): ZIO[Any, Throwable, Nothing] = {
-    val app = HttpAppAdapter.fromRouter(router)
+object Server extends ZIOAppDefault {
+  def run: ZIO[Any, Throwable, Nothing] = {
+    val router = Router.apply() // Initialize your router with routes
 
-    Server
-      .serve(app)
-      .provide(Server.defaultWithPort(8080))
-      .exitCode
-      .flatMap(_ => ZIO.never)
+    // Create the HTTP app from the router
+    val httpApp = HttpAppAdapter.fromRouter(router)
+
+    // Start the server
+    zio.http.Server.serve(httpApp).provide(
+      zio.http.Server.defaultWithPort(8080), // Default port
+    )
   }
 }

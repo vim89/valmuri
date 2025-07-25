@@ -1,5 +1,4 @@
-// Valmuri Framework - build.sbt (refactored)
-
+// build.sbt (updated with correct dependencies)
 ThisBuild / scalaVersion := "2.13.12"
 ThisBuild / version      := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.vitthalmirji"
@@ -19,15 +18,7 @@ ThisBuild / scalacOptions ++= Seq(
 lazy val commonSettings = Seq(
   Test / fork := false,
   Compile / fork := true,
-  testFrameworks += new TestFramework("munit.Framework"),
-  publishMavenStyle := true,
-  publishTo := {
-    val nexus = "https://oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  }
+  testFrameworks += new TestFramework("munit.Framework")
 )
 
 lazy val valmuri = project
@@ -36,8 +27,8 @@ lazy val valmuri = project
   .settings(
     name := "valmuri",
     libraryDependencies ++= Seq(
-      "dev.zio"        %% "zio"           % "2.1.20",    // latest stable patch  [oai_citation:0‡github.com](https://github.com/zio/zio/releases?utm_source=chatgpt.com)
-      "dev.zio"        %% "zio-http"      % "3.3.3",     // stable official ZIO HTTP release  [oai_citation:1‡mvnrepository.com](https://mvnrepository.com/artifact/dev.zio/zio-http?utm_source=chatgpt.com)
+      "dev.zio"        %% "zio"           % "2.1.20",
+      "dev.zio"        %% "zio-http"      % "3.3.3",   // Updated compatible version
       "dev.zio"        %% "zio-streams"   % "2.1.20",
       "io.circe"       %% "circe-generic" % "0.14.14",
       "org.tpolecat"   %% "doobie-core"   % "1.0.0-RC10",
@@ -71,36 +62,8 @@ lazy val helloWorld = project
     publish / skip := true
   )
 
-lazy val examples = project
-  .in(file("examples"))
-  .dependsOn(helloWorld)
-  .settings(
-    name := "valmuri-examples",
-    publish / skip := true
-  )
-
-lazy val docs = project
-  .in(file("docs"))
-  .dependsOn(valmuri)
-  .settings(commonSettings)
-  .settings(
-    name := "valmuri-docs",
-    libraryDependencies ++= Seq("com.lihaoyi" %%% "scalatags" % "0.12.0"),
-    publish / skip := true
-  )
-
-lazy val root = project
-  .in(file("."))
-  .aggregate(valmuri, cli, helloWorld, docs)
-  .settings(
-    name := "valmuri",
-    publish / skip := true
-  )
-
-addCommandAlias("buildAll", ";clean;valmuri/compile;valmuri/test;cli/compile;helloWorld/compile")
+// Command aliases
+addCommandAlias("buildAll", ";clean;compile;test;cli/compile;helloWorld/compile")
 addCommandAlias("runExample", "helloWorld/run")
-addCommandAlias("packageCli", "cli/assembly")
-addCommandAlias("testFramework", "valmuri/test")
-addCommandAlias("dev", ";~valmuri/compile;valmuri/test")
-addCommandAlias("publishAll", ";valmuri/publish;cli/publish")
-addCommandAlias("cleanAll", ";clean;valmuri/clean;cli/clean;helloWorld/clean")
+addCommandAlias("testFramework", "test")
+addCommandAlias("dev", ";~compile;test")

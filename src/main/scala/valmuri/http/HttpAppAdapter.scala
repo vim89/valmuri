@@ -1,20 +1,29 @@
 package valmuri.http
 
-import valmuri.routing.{Response, Router, Request => ValReq}
+import valmuri.routing.{Router, Request => ValmuriRequest, Response => ValmuriResponse}
 import zio._
-import zio.http.endpoint.openapi.OpenAPI.SecurityScheme.Http
-import zio.http.{Request, Status}
+import zio.http._
 import zio.prelude.data.Optional.AllValuesAreNullable
 
 object HttpAppAdapter {
-  def fromRouter(router: Router): Http[Any, Throwable, Request, Response] =
-    Http.collectZIO[Request] { req =>
-      val vmReq = ValReq(req.method.toString(), req.url.path.encode)
-      val vmResp = router.route(vmReq)
-      ZIO.succeed(
-        Response
-          .text(vmResp.body)
-          .withStatus(Status.fromInt(vmResp.status).getOrElse(Status.InternalServerError))
-      )
-    }
+  def fromRouter(router: Router): Routes[Any, Response] =
+    Routes(
+      RoutePattern.any -> handler { (req: Request) =>
+        val valmuriRequest = ValmuriRequest(
+          method = req.method.toString,
+          path = req.url.path.toString,
+          params = Map.empty // Path params will be extracted by router
+        )
+
+        val valmuriResponse = router.route(valmuriRequest)
+
+        ZIO.succeed(
+          Response(
+            status = Status.fromInt(valmuriResponse.status).getOrElse(Status.InternalServerError),
+            headers = Headers(Header.ContentType(MediaType.application.json)),
+            body = Body.fromString(valmuriResponse.body)
+          )
+        )
+      }
+    )
 }
