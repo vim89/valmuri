@@ -1,6 +1,6 @@
 // build.sbt (updated with correct dependencies)
 ThisBuild / scalaVersion := "2.13.12"
-ThisBuild / version      := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.vitthalmirji"
 
 ThisBuild / crossScalaVersions := Seq("2.13.12")
@@ -27,16 +27,19 @@ lazy val valmuri = project
   .settings(
     name := "valmuri",
     libraryDependencies ++= Seq(
-      "dev.zio"        %% "zio"           % "2.1.20",
-      "dev.zio"        %% "zio-http"      % "3.3.3",   // Updated compatible version
-      "dev.zio"        %% "zio-streams"   % "2.1.20",
-      "io.circe"       %% "circe-generic" % "0.14.14",
-      "org.tpolecat"   %% "doobie-core"   % "1.0.0-RC10",
-      "com.github.scopt" %% "scopt"       % "4.1.0",
-      "org.scalameta"  %%% "munit"        % "1.0.0-M10" % Test
+      "dev.zio" %% "zio" % "2.1.20",
+      "dev.zio" %% "zio-http" % "3.3.3",
+      "dev.zio" %% "zio-streams" % "2.1.20",
+      "dev.zio" %% "zio-config" % "4.0.4",
+      "dev.zio" %% "zio-config-typesafe" % "4.0.4",
+      "dev.zio" %% "zio-config-magnolia" % "4.0.4",
+      "io.circe" %% "circe-generic" % "0.14.14",
+      "org.tpolecat" %% "doobie-core" % "1.0.0-RC10",
+      "com.github.scopt" %% "scopt" % "4.1.0",
+      "org.scalameta" %%% "munit" % "1.0.0-M10" % Test
     ),
     Compile / scalaSource := baseDirectory.value / "src/main/scala",
-    Test / scalaSource    := baseDirectory.value / "src/test/scala",
+    Test / scalaSource := baseDirectory.value / "src/test/scala",
     Compile / resourceDirectory := baseDirectory.value / "src/main/resources"
   )
 
