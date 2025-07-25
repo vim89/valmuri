@@ -27,6 +27,14 @@ lazy val valmuri = project
   .settings(
     name := "valmuri",
     libraryDependencies ++= Seq(
+      "dev.zio" %% "zio-logging" % "2.1.14",
+      "com.typesafe" % "config" % "1.4.3",
+
+      // Testing
+      "org.scalameta" %%% "munit" % "1.0.0-M10" % Test,
+      "dev.zio" %% "zio-test" % "2.1.20" % Test,
+      "dev.zio" %% "zio-test-sbt" % "2.1.20" % Test,
+
       "dev.zio" %% "zio" % "2.1.20",
       "dev.zio" %% "zio-http" % "3.3.3",
       "dev.zio" %% "zio-streams" % "2.1.20",

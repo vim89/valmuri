@@ -3,7 +3,7 @@ package valmuri.config
 import zio._
 import zio.config.magnolia.DeriveConfig.deriveConfig
 
-case class AppConfig(host: String, port: Int)
+case class AppConfig2(host: String, port: Int)
 
 object AppConfigModule {
   // automatically derived descriptor
@@ -12,12 +12,12 @@ object AppConfigModule {
   val live: ZLayer[Any, Throwable, AppConfig] =
     ZLayer.fromZIO(ZIO.config(configDescriptor))
 
-  def get: ZIO[AppConfig, Throwable, AppConfig] =
-    ZIO.service[AppConfig]
+  def get: ZIO[AppConfig2, Throwable, AppConfig2] =
+    ZIO.service[AppConfig2]
 
-  def host: ZIO[AppConfig, Throwable, String] =
-    ZIO.serviceWith[AppConfig](_.host)
+  def host: ZIO[AppConfig2, Throwable, String] =
+    ZIO.serviceWith[AppConfig2](_.host)
 
-  def port: ZIO[AppConfig, Throwable, Int] =
-    ZIO.serviceWith[AppConfig](_.port)
+  def port: ZIO[AppConfig2, Throwable, Int] =
+    ZIO.serviceWith[AppConfig2](_.port)
 }
