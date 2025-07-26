@@ -1,0 +1,99 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Mill
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mill
+          key: ${{ runner.os }}-mill-${{ hashFiles('build.sc') }}
+
+      - name: Install Mill
+        run: |
+          curl -L https://github.com/com-lihaoyi/mill/releases/latest/download/mill-linux > mill
+          chmod +x mill
+
+      - name: Check Formatting
+        run: ./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll
+
+      - name: Compile
+        run: ./mill valmuri.compile
+
+      - name: Run Tests
+        run: ./mill valmuri.test
+
+      - name: Generate Coverage Report
+        run: ./mill valmuri.test.testCachedCoverage
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
+
+  test-cross-platform:
+    name: Test Cross Platform
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Run Tests
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            powershell -c "irm https://github.com/com-lihaoyi/mill/releases/latest/download/mill.bat -OutFile mill.bat"
+            ./mill.bat valmuri.test
+          else
+            curl -L https://github.com/com-lihaoyi/mill/releases/latest/download/mill-linux > mill
+            chmod +x mill  
+            ./mill valmuri.test
+          fi
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'valmuri'
+          path: '.'
+          format: 'ALL'
+
+      - name: Upload Dependency Check Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
