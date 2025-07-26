@@ -1,61 +1,102 @@
-name: CI Pipeline
+name: Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'feature/*' ]
   pull_request:
     branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly dependency check
   workflow_dispatch:
+
+env:
+  JAVA_VERSION: '21'
+  MILL_VERSION: '1.0.1'
 
 jobs:
   validate:
-    name: Validate Code Quality
+    name: Code Quality & Tests
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better blame info
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Cache Mill
+      - name: Cache Mill & Dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cache/mill
+          path: |
+            ~/.cache/mill
+            ~/.ivy2/cache
+            ~/.m2/repository
           key: ${{ runner.os }}-mill-${{ hashFiles('build.sc') }}
+          restore-keys: |
+            ${{ runner.os }}-mill-
 
       - name: Install Mill
         run: |
-          curl -L https://github.com/com-lihaoyi/mill/releases/latest/download/mill-linux > mill
+          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
           chmod +x mill
 
-      - name: Check Formatting
+      - name: Validate Formatting
         run: ./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll
 
-      - name: Compile
-        run: ./mill valmuri.compile
+      - name: Compile All Modules
+        run: |
+          ./mill valmuri.compile
+          ./mill cli.compile
+          ./mill examples.helloWorld.compile
 
-      - name: Run Tests
-        run: ./mill valmuri.test
+      - name: Run Unit Tests
+        run: ./mill testAll
 
       - name: Generate Coverage Report
-        run: ./mill valmuri.test.testCachedCoverage
+        run: ./mill coverage
 
-      - name: Upload Coverage
+      - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
+        with:
+          files: ./out/valmuri/scoverage/htmlReport.dest/scoverage.xml
+          fail_ci_if_error: true
+
+      - name: Run Integration Tests
+        run: |
+          ./mill examples.helloWorld.run &
+          APP_PID=$!
+          sleep 10
+          curl -f http://localhost:8080/health || exit 1
+          kill $APP_PID
+
+      - name: Check for Vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Security Scan Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
 
   test-cross-platform:
-    name: Test Cross Platform
+    name: Cross Platform Tests
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
 
     runs-on: ${{ matrix.os }}
-
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,36 +105,93 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Run Tests
+      - name: Install Mill (Unix)
+        if: runner.os != 'Windows'
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            powershell -c "irm https://github.com/com-lihaoyi/mill/releases/latest/download/mill.bat -OutFile mill.bat"
-            ./mill.bat valmuri.test
-          else
-            curl -L https://github.com/com-lihaoyi/mill/releases/latest/download/mill-linux > mill
-            chmod +x mill  
-            ./mill valmuri.test
-          fi
+          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
+          chmod +x mill
 
-  security:
-    name: Security Scan
+      - name: Install Mill (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill.bat" -OutFile "mill.bat"
+
+      - name: Run Tests (Unix)
+        if: runner.os != 'Windows'
+        run: ./mill testAll
+
+      - name: Run Tests (Windows)
+        if: runner.os == 'Windows'
+        run: .\mill.bat testAll
+
+  performance-benchmark:
+    name: Performance Benchmarks
     runs-on: ubuntu-latest
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          project: 'valmuri'
-          path: '.'
-          format: 'ALL'
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Upload Dependency Check Results
-        uses: actions/upload-artifact@v4
+      - name: Install Mill
+        run: |
+          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
+          chmod +x mill
+
+      - name: Run Benchmarks
+        run: ./mill benchmarks.runMain org.openjdk.jmh.Main
+
+      - name: Store Benchmark Results
+        uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: dependency-check-report
-          path: reports/
+          tool: 'jmh'
+          output-file-path: benchmark-results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [ validate, test-cross-platform ]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Install Mill
+        run: |
+          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
+          chmod +x mill
+
+      - name: Publish to Maven Central
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        run: ./mill mill.scalalib.PublishModule/publishAll
+
+      - name: Create CLI Binary
+        run: ./mill cli.assembly
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/cli/assembly.dest/out.jar
+          generate_release_notes: true
