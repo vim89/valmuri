@@ -1,16 +1,9 @@
 package valmuri.core
 
 import zio._
-import valmuri.config.{
-  AppConfig,
-  ConfigLoader,
-  DatabaseConfig,
-  FeatureConfig,
-  LoggingConfig,
-  SecurityConfig,
-  ServerConfig,
-}
-import valmuri.di.{ Container, ServiceRegistry }
+import valmuri.config.{AppConfig, ConfigLoader, DatabaseConfig, FeatureConfig, LoggingConfig, SecurityConfig, ServerConfig}
+import valmuri.di.{Container, ServiceRegistry}
+import valmuri.http.Server
 import valmuri.routing.Router
 
 abstract class ValmuriApplication extends ZIOAppDefault {
@@ -26,8 +19,8 @@ abstract class ValmuriApplication extends ZIOAppDefault {
     val app = for {
       _      <- ZIO.logInfo("🎯 Initializing Valmuri Framework")
       config <- loadConfiguration()
-      router = routes()
-      _ <- runApplication(config, router)
+      router  = routes()
+      _      <- runApplication(config, router)
     } yield ()
 
     app.provide(
@@ -48,8 +41,8 @@ abstract class ValmuriApplication extends ZIOAppDefault {
   } yield finalConfig
 
   private def runApplication(
-      config: AppConfig,
-      router: Router,
+    config: AppConfig,
+    router: Router,
   ): ZIO[Container with ApplicationContext, Throwable, Unit] = ZIO.scoped {
     for {
       context <- ZIO.service[ApplicationContext]

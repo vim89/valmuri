@@ -9,10 +9,7 @@ sealed trait ValmuriError extends Throwable {
 }
 
 object ValmuriError {
-  case class ValidationError(
-    field: String,
-    message: String,
-    override val cause: Option[Throwable] = None)
+  case class ValidationError(field: String, message: String, override val cause: Option[Throwable] = None)
       extends ValmuriError {
     def toResponse: Response = Response
       .json(s"""{"error": "validation", "field": "$field", "message": "$message"}""")
@@ -25,17 +22,13 @@ object ValmuriError {
       Response.json(s"""{"error": "not_found", "resource": "$resource"}""").status(Status.NotFound)
   }
 
-  case class DatabaseError(
-    override val message: String,
-    override val cause: Option[Throwable] = None)
+  case class DatabaseError(override val message: String, override val cause: Option[Throwable] = None)
       extends ValmuriError {
     def toResponse: Response =
       Response.json(s"""{"error": "database", "message": "$message"}""").status(Status.InternalServerError)
   }
 
-  case class ConfigurationError(
-    override val message: String,
-    override val cause: Option[Throwable] = None)
+  case class ConfigurationError(override val message: String, override val cause: Option[Throwable] = None)
       extends ValmuriError {
     def toResponse: Response =
       Response.json(s"""{"error": "configuration", "message": "$message"}""").status(Status.InternalServerError)

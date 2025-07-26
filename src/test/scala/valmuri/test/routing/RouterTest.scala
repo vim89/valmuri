@@ -2,7 +2,7 @@ package valmuri.test.routing
 
 import munit.FunSuite
 import valmuri.routing.DSL._
-import valmuri.routing.{Handler, PathPattern, Request, Response, Router}
+import valmuri.routing.{ Handler, PathPattern, Request, Response, Router }
 import valmuri.routing.Literal
 
 class RouterTest extends FunSuite {
@@ -67,12 +67,12 @@ class RouterTest extends FunSuite {
 
   test("Router should handle different HTTP methods") {
     val router = Router(
-      GET / "users" -> Handler(_ => Response(200, "GET users")),
+      GET / "users"  -> Handler(_ => Response(200, "GET users")),
       POST / "users" -> Handler(_ => Response(201, "POST users")),
       PUT / "users" / IntParam("id") -> Handler { request =>
         val userId = request.params("id")
         Response(200, s"PUT user $userId")
-      }
+      },
     )
 
     assertEquals(router.route(Request("GET", "/users")).body, "GET users")
@@ -81,13 +81,15 @@ class RouterTest extends FunSuite {
   }
 
   test("PathPattern should match complex nested routes") {
-    val pattern = PathPattern(List(
-      Literal("api"),
-      Literal("v1"),
-      Literal("users"),
-      IntParam("id"),
-      Literal("posts")
-    ))
+    val pattern = PathPattern(
+      List(
+        Literal("api"),
+        Literal("v1"),
+        Literal("users"),
+        IntParam("id"),
+        Literal("posts"),
+      )
+    )
 
     val result = pattern.matches("/api/v1/users/123/posts")
     assert(result.isDefined)

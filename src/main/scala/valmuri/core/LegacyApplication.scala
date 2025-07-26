@@ -8,13 +8,12 @@ import valmuri.routing.Router
 trait FlowApplication {
   def configure(): AppConfig
   def initialize(): Task[Unit] = ZIO.unit
-  def shutdown(): Task[Unit] = ZIO.unit
+  def shutdown(): Task[Unit]   = ZIO.unit
 }
 
 object FlowRunner {
   @deprecated("Use ValmuriApplication.run instead", "0.2.0")
-  def run[A <: FlowApplication](app: A): Task[ExitCode] = {
+  def run[A <: FlowApplication](app: A): Task[ExitCode] =
     ZIO.logWarning("⚠️ FlowApplication is deprecated. Use ValmuriApplication instead.") *>
       ZIO.succeed(ExitCode.success)
-  }
 }

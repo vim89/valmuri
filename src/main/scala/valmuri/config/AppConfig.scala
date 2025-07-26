@@ -6,75 +6,75 @@ import zio.config.magnolia.DeriveConfig
 
 // Core application configuration
 case class AppConfig(
-    server: ServerConfig = ServerConfig.default,
-    database: DatabaseConfig = DatabaseConfig.default,
-    logging: LoggingConfig = LoggingConfig.default,
-    security: SecurityConfig = SecurityConfig.default,
-    features: FeatureConfig = FeatureConfig.default,
+  server: ServerConfig = ServerConfig.default,
+  database: DatabaseConfig = DatabaseConfig.default,
+  logging: LoggingConfig = LoggingConfig.default,
+  security: SecurityConfig = SecurityConfig.default,
+  features: FeatureConfig = FeatureConfig.default,
 )
 
 case class ServerConfig(
-    host: String = "localhost",
-    port: Int = 8080,
-    maxConnections: Int = 1000,
-    requestTimeout: Duration = 30.seconds,
-    shutdownTimeout: Duration = 10.seconds,
+  host: String = "localhost",
+  port: Int = 8080,
+  maxConnections: Int = 1000,
+  requestTimeout: Duration = 30.seconds,
+  shutdownTimeout: Duration = 10.seconds,
 )
 
 case class DatabaseConfig(
-    driver: String = "org.sqlite.JDBC",
-    url: String = "jdbc:sqlite:./valmuri.db",
-    username: Option[String] = None,
-    password: Option[String] = None,
-    poolSize: Int = 10,
-    connectionTimeout: Duration = 5.seconds,
-    migrations: MigrationConfig = MigrationConfig.default,
+  driver: String = "org.sqlite.JDBC",
+  url: String = "jdbc:sqlite:./valmuri.db",
+  username: Option[String] = None,
+  password: Option[String] = None,
+  poolSize: Int = 10,
+  connectionTimeout: Duration = 5.seconds,
+  migrations: MigrationConfig = MigrationConfig.default,
 )
 
 case class MigrationConfig(
-    enabled: Boolean = true,
-    location: String = "db/migrations",
-    autoMigrate: Boolean = true,
+  enabled: Boolean = true,
+  location: String = "db/migrations",
+  autoMigrate: Boolean = true,
 )
 
 case class LoggingConfig(
-    level: String = "INFO",
-    format: String = "text", // text | json
-    file: Option[String] = None,
-    console: Boolean = true,
+  level: String = "INFO",
+  format: String = "text", // text | json
+  file: Option[String] = None,
+  console: Boolean = true,
 )
 
 case class SecurityConfig(
-    cors: CorsConfig = CorsConfig.default,
-    csrf: CsrfConfig = CsrfConfig.default,
-    headers: SecurityHeadersConfig = SecurityHeadersConfig.default,
+  cors: CorsConfig = CorsConfig.default,
+  csrf: CsrfConfig = CsrfConfig.default,
+  headers: SecurityHeadersConfig = SecurityHeadersConfig.default,
 )
 
 case class CorsConfig(
-    enabled: Boolean = true,
-    allowedOrigins: List[String] = List("*"),
-    allowedMethods: List[String] = List("GET", "POST", "PUT", "DELETE", "OPTIONS"),
-    allowedHeaders: List[String] = List("*"),
+  enabled: Boolean = true,
+  allowedOrigins: List[String] = List("*"),
+  allowedMethods: List[String] = List("GET", "POST", "PUT", "DELETE", "OPTIONS"),
+  allowedHeaders: List[String] = List("*"),
 )
 
 case class CsrfConfig(
-    enabled: Boolean = true,
-    cookieName: String = "valmuri-csrf-token",
-    headerName: String = "X-CSRF-Token",
+  enabled: Boolean = true,
+  cookieName: String = "valmuri-csrf-token",
+  headerName: String = "X-CSRF-Token",
 )
 
 case class SecurityHeadersConfig(
-    enabled: Boolean = true,
-    contentTypeOptions: Boolean = true,
-    frameOptions: String = "DENY",
-    xssProtection: Boolean = true,
+  enabled: Boolean = true,
+  contentTypeOptions: Boolean = true,
+  frameOptions: String = "DENY",
+  xssProtection: Boolean = true,
 )
 
 case class FeatureConfig(
-    adminPanel: Boolean = false,
-    apiDocs: Boolean = true,
-    metrics: Boolean = true,
-    healthCheck: Boolean = true,
+  adminPanel: Boolean = false,
+  apiDocs: Boolean = true,
+  metrics: Boolean = true,
+  healthCheck: Boolean = true,
 )
 
 object AppConfig {
@@ -120,7 +120,7 @@ object CsrfConfig {
 }
 
 object SecurityHeadersConfig {
-  val default: SecurityHeadersConfig                 = SecurityHeadersConfig()
+  val default: SecurityHeadersConfig = SecurityHeadersConfig()
   implicit val config: Config[SecurityHeadersConfig] =
     DeriveConfig.deriveConfig[SecurityHeadersConfig]
 }

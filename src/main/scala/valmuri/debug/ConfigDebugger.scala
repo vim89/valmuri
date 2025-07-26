@@ -15,9 +15,9 @@ object ConfigDebugger {
 
   def validateEnvironment(): Task[Unit] = for {
     env <- ZIO.attempt(sys.env.getOrElse("VALMURI_ENV", "development"))
-    _ <- ZIO.logInfo(s"🌍 Environment: $env")
+    _   <- ZIO.logInfo(s"🌍 Environment: $env")
     _ <- ZIO.when(env == "production") {
-      ZIO.logWarning("⚠️ Running in PRODUCTION mode")
-    }
+           ZIO.logWarning("⚠️ Running in PRODUCTION mode")
+         }
   } yield ()
 }

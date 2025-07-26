@@ -1,4 +1,4 @@
-package valmuri.core
+package valmuri.http
 
 import zio._
 import zio.http._
@@ -14,18 +14,18 @@ trait Server {
 
 object Server {
   final case class ServerLive(
-      config: ServerConfig,
-      router: Router,
-      serverRef: Ref[Option[Fiber.Runtime[Throwable, Nothing]]],
+    config: ServerConfig,
+    router: Router,
+    serverRef: Ref[Option[Fiber.Runtime[Throwable, Nothing]]],
   ) extends Server {
 
     def start(): Task[Unit] = for {
-      _ <- ZIO.logInfo(s"🚀 Starting server on ${config.host}:${config.port}")
+      _      <- ZIO.logInfo(s"🚀 Starting server on ${config.host}:${config.port}")
       httpApp = HttpAppAdapter.fromRouter(router)
       fiber <- zio.http.Server
-        .serve(httpApp)
-        .provide(zio.http.Server.defaultWithPort(config.port))
-        .fork
+                 .serve(httpApp)
+                 .provide(zio.http.Server.defaultWithPort(config.port))
+                 .fork
       _ <- serverRef.set(Some(fiber))
       _ <- ZIO.logInfo(s"✅ Server started on http://${config.host}:${config.port}")
     } yield ()
@@ -33,10 +33,10 @@ object Server {
     def stop(): Task[Unit] = for {
       _        <- ZIO.logInfo("🛑 Stopping server")
       fiberOpt <- serverRef.get
-      _        <- fiberOpt match {
-        case Some(fiber) => fiber.interrupt
-        case None        => ZIO.unit
-      }
+      _ <- fiberOpt match {
+             case Some(fiber) => fiber.interrupt
+             case None        => ZIO.unit
+           }
       _ <- serverRef.set(None)
       _ <- ZIO.logInfo("✅ Server stopped")
     } yield ()

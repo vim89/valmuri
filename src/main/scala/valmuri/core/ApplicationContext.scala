@@ -2,21 +2,22 @@ package valmuri.core
 
 import valmuri.config.AppConfig
 import valmuri.di.Container
+import valmuri.http.Server
 import zio._
 
 trait ApplicationContext {
   def start(): Task[Unit]
   def stop(): Task[Unit]
   def restart(): Task[Unit]
-  def getConfig(): Task[AppConfig]
-  def getContainer(): Task[Container]
+  def getConfig: Task[AppConfig]
+  def getContainer: Task[Container]
 }
 
 object ApplicationContext {
-  final case class ApplicationContextLive(
-      config: AppConfig,
-      container: Container,
-      server: Server,
+  private final case class ApplicationContextLive(
+    config: AppConfig,
+    container: Container,
+    server: Server,
   ) extends ApplicationContext {
 
     def start(): Task[Unit] = for {
@@ -38,8 +39,8 @@ object ApplicationContext {
       _ <- start()
     } yield ()
 
-    def getConfig(): Task[AppConfig]    = ZIO.succeed(config)
-    def getContainer(): Task[Container] = ZIO.succeed(container)
+    def getConfig: Task[AppConfig]    = ZIO.succeed(config)
+    def getContainer: Task[Container] = ZIO.succeed(container)
   }
 
   val live: ZLayer[AppConfig with Container with Server, Nothing, ApplicationContext] =

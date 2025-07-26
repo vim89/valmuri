@@ -13,9 +13,9 @@ trait Container {
 
 object Container {
   final case class ContainerLive(
-      registry: ServiceRegistry,
-      config: AppConfig,
-      runtime: Ref[Map[String, Any]],
+    registry: ServiceRegistry,
+    config: AppConfig,
+    runtime: Ref[Map[String, Any]],
   ) extends Container {
 
     def start(): Task[Unit] = for {
@@ -34,9 +34,9 @@ object Container {
       val className = implicitly[Tag[A]].tag.shortName
       for {
         runtimeMap <- runtime.get
-        instance   <- ZIO
-          .fromOption(runtimeMap.get(className))
-          .orElseFail(new RuntimeException(s"Service not registered: $className"))
+        instance <- ZIO
+                      .fromOption(runtimeMap.get(className))
+                      .orElseFail(new RuntimeException(s"Service not registered: $className"))
       } yield instance.asInstanceOf[A]
     }
 

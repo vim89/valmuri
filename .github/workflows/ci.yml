@@ -52,14 +52,14 @@ jobs:
             ${{ runner.os }}-mill
 
       - name: Validate Formatting
-        run: ./mill.sh mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll
+        run: ./mill.sh mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
 
       - name: Compile Modules
         run: |
           ./mill.sh visualize clean __compile
 
       - name: Run Unit Tests
-        run: ./mill.sh testAll
+        run: ./mill.sh __test
 
       - name: Generate Coverage Report
         run: ./mill.sh coverage

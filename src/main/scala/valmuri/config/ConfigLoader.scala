@@ -15,29 +15,29 @@ trait ConfigLoader {
 }
 
 object ConfigLoader {
-  private final case class ConfigLoaderLive() extends ConfigLoader {
+  final private case class ConfigLoaderLive() extends ConfigLoader {
 
     def load(): Task[AppConfig] = for {
-      _ <- ZIO.logInfo("📋 Loading Valmuri configuration")
+      _          <- ZIO.logInfo("📋 Loading Valmuri configuration")
       environment = sys.env.getOrElse("VALMURI_ENV", "development")
-      _      <- ZIO.logInfo(s"🌍 Environment: $environment")
-      config <- loadConfiguration(environment)
-      _      <- validateConfiguration(config)
-      _      <- ZIO.logInfo("✅ Configuration loaded successfully")
+      _          <- ZIO.logInfo(s"🌍 Environment: $environment")
+      config     <- loadConfiguration(environment)
+      _          <- validateConfiguration(config)
+      _          <- ZIO.logInfo("✅ Configuration loaded successfully")
     } yield config
 
     def loadFromFile(path: String): Task[AppConfig] = for {
-      _      <- ZIO.logInfo(s"📁 Loading config from file: $path")
-      config <- ZIO.attempt(ConfigFactory.parseFile(new File(path)))
-      provider = ConfigProvider.fromTypesafeConfig(config)
+      _         <- ZIO.logInfo(s"📁 Loading config from file: $path")
+      config    <- ZIO.attempt(ConfigFactory.parseFile(new File(path)))
+      provider   = ConfigProvider.fromTypesafeConfig(config)
       appConfig <- ZIO.config(AppConfig.config).provideLayer(ZLayer.succeed(provider))
     } yield appConfig
 
     def loadFromEnvironment(): Task[AppConfig] = for {
-      _         <- ZIO.logInfo("🌐 Loading config from environment variables")
+      _ <- ZIO.logInfo("🌐 Loading config from environment variables")
       envConfig <- ZIO
-        .config(AppConfig.config)
-        .provideLayer(ZLayer.succeed(ConfigProvider.envProvider))
+                     .config(AppConfig.config)
+                     .provideLayer(ZLayer.succeed(ConfigProvider.envProvider))
     } yield envConfig
 
     def reload(): Task[AppConfig] = for {
@@ -54,22 +54,22 @@ object ConfigLoader {
 
       for {
         hoconConfig <- ZIO.attempt {
-          val configs = configFiles.map { filename =>
-            val resource = getClass.getClassLoader.getResource(filename)
-            if (resource != null) {
-              ConfigFactory.parseResources(filename)
-            } else {
-              ConfigFactory.empty()
-            }
-          }
-          configs
-            .foldLeft(ConfigFactory.empty())(_ withFallback _)
-            .withFallback(ConfigFactory.systemEnvironment())
-            .withFallback(ConfigFactory.systemProperties())
-            .resolve()
-        }
+                         val configs = configFiles.map { filename =>
+                           val resource = getClass.getClassLoader.getResource(filename)
+                           if (resource != null) {
+                             ConfigFactory.parseResources(filename)
+                           } else {
+                             ConfigFactory.empty()
+                           }
+                         }
+                         configs
+                           .foldLeft(ConfigFactory.empty())(_ withFallback _)
+                           .withFallback(ConfigFactory.systemEnvironment())
+                           .withFallback(ConfigFactory.systemProperties())
+                           .resolve()
+                       }
 
-        provider = ConfigProvider.fromTypesafeConfig(hoconConfig)
+        provider   = ConfigProvider.fromTypesafeConfig(hoconConfig)
         appConfig <- ZIO.config(AppConfig.config).provideLayer(ZLayer.succeed(provider))
 
       } yield appConfig
@@ -77,11 +77,11 @@ object ConfigLoader {
 
     private def validateConfiguration(config: AppConfig): Task[Unit] = for {
       _ <- ZIO.when(config.server.port < 1 || config.server.port > 65535) {
-        ZIO.fail(new IllegalArgumentException(s"Invalid port: ${config.server.port}"))
-      }
+             ZIO.fail(new IllegalArgumentException(s"Invalid port: ${config.server.port}"))
+           }
       _ <- ZIO.when(config.database.poolSize < 1) {
-        ZIO.fail(new IllegalArgumentException(s"Invalid pool size: ${config.database.poolSize}"))
-      }
+             ZIO.fail(new IllegalArgumentException(s"Invalid pool size: ${config.database.poolSize}"))
+           }
       _ <- ZIO.logInfo("✅ Configuration validation passed")
     } yield ()
   }

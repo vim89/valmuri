@@ -23,12 +23,12 @@ object DSL {
       RouteDefinition(method, PathPattern(segments), handler)
   }
 
-  val GET = MethodBuilder("GET")
-  val POST = MethodBuilder("POST")
-  val PUT = MethodBuilder("PUT")
-  val DELETE = MethodBuilder("DELETE")
+  val GET: MethodBuilder = MethodBuilder("GET")
+  val POST: MethodBuilder = MethodBuilder("POST")
+  val PUT: MethodBuilder = MethodBuilder("PUT")
+  val DELETE: MethodBuilder = MethodBuilder("DELETE")
 
   // Parameter extractors
   def StringParam(name: String): StringParam = new StringParam(name)
-  def IntParam(name: String): IntParam = new IntParam(name)
+  def IntParam(name: String): IntParam       = new IntParam(name)
 }
