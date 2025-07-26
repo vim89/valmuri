@@ -30,6 +30,9 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
 
+      - name: Ensure Mill Script is Executable
+        run: chmod +x ./mill
+
       - name: Cache Mill & Dependencies
         uses: actions/cache@v4
         with:
@@ -40,11 +43,6 @@ jobs:
           key: ${{ runner.os }}-mill-${{ hashFiles('build.sc') }}
           restore-keys: |
             ${{ runner.os }}-mill-
-
-      - name: Install Mill
-        run: |
-          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
-          chmod +x mill
 
       - name: Validate Formatting
         run: ./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll
@@ -75,81 +73,52 @@ jobs:
           curl -f http://localhost:8080/health || exit 1
           kill $APP_PID
 
-      - name: Check for Vulnerabilities
+      - name: Scan for Vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: Upload Security Scan Results
+      - name: Upload Security Report
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
   test-cross-platform:
-    name: Cross Platform Tests
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-
-    runs-on: ${{ matrix.os }}
-    
+      fail-fast: false
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Install Mill (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
-          chmod +x mill
-
-      - name: Install Mill (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill.bat" -OutFile "mill.bat"
-
-      - name: Run Tests (Unix)
-        if: runner.os != 'Windows'
+      - name: Ensure Mill Script Executable
+        run: chmod +x ./mill
+      - name: Run Tests
         run: ./mill testAll
 
-      - name: Run Tests (Windows)
-        if: runner.os == 'Windows'
-        run: .\mill.bat testAll
-
   performance-benchmark:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Install Mill
-        run: |
-          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
-          chmod +x mill
-
+      - name: Ensure Mill Script Executable
+        run: chmod +x ./mill
       - name: Run Benchmarks
         run: ./mill benchmarks.runMain org.openjdk.jmh.Main
-
-      - name: Store Benchmark Results
+      - name: Upload Benchmark Results
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: 'jmh'
@@ -158,37 +127,22 @@ jobs:
           auto-push: true
 
   release:
-    name: Release
-    runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [ validate, test-cross-platform ]
-    
+    needs: [validate, test-cross-platform]
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Install Mill
-        run: |
-          curl -L https://github.com/com-lihaoyi/mill/releases/download/${{ env.MILL_VERSION }}/mill-linux > mill
-          chmod +x mill
-
-      - name: Publish to Maven Central
-        env:
-          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+      - name: Ensure Mill Script Executable
+        run: chmod +x ./mill
+      - name: Publish Modules
         run: ./mill mill.scalalib.PublishModule/publishAll
-
-      - name: Create CLI Binary
+      - name: Build CLI Bundle
         run: ./mill cli.assembly
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
