@@ -33,13 +33,8 @@ jobs:
 
       - name: Install Mill 1.0.1
         run: |
-          echo "Installing Mill 1.0.1 globally"
-          curl -fsSL https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.1/mill-dist-1.0.1-mill.sh \
-            -o /usr/local/bin/mill
-          head -n1 /usr/local/bin/mill | grep -q '^#!/usr/bin/env bash' \
-            || (echo "Invalid mill file" && exit 1)
-          dos2unix /usr/local/bin/mill || true
-          chmod +x /usr/local/bin/mill
+          curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.1/mill-dist-1.0.1-mill.sh -o mill
+          chmod +x mill
 
       - name: Verify Mill version
         run: mill --version
