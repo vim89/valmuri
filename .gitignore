@@ -5,6 +5,7 @@
 hs_err_pid*
 
 # Mill
+.bsp/
 out/
 .mill-version
 
