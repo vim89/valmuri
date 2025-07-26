@@ -35,10 +35,9 @@ jobs:
         run: |
           curl -L -o mill.sh https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.1/mill-dist-1.0.1-mill.sh
           chmod +x mill.sh
-          export PATH=$PATH:$(pwd)/mill.sh
 
       - name: Verify Mill version
-        run: mill --version
+        run: ./mill.sh --version
 
       - name: Cache Ivy and Mill artifacts
         uses: actions/cache@v4
@@ -52,19 +51,19 @@ jobs:
             ${{ runner.os }}-mill
 
       - name: Validate Formatting
-        run: mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll
+        run: ./mill.sh mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll
 
       - name: Compile Modules
         run: |
-          mill valmuri.compile
-          mill cli.compile
-          mill examples.helloWorld.compile
+          ./mill.sh valmuri.compile
+          ./mill.sh cli.compile
+          ./mill.sh examples.helloWorld.compile
 
       - name: Run Unit Tests
-        run: mill testAll
+        run: ./mill.sh testAll
 
       - name: Generate Coverage Report
-        run: mill coverage
+        run: ./mill.sh coverage
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
