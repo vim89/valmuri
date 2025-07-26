@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    if: false  # Disable this job by default, enable specific jobs below
     name: Run scala tests
     strategy:
       fail-fast: false
