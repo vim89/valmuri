@@ -1,8 +1,16 @@
 package valmuri.core
 
 import zio._
-import valmuri.config.{AppConfig, ConfigLoader, DatabaseConfig, FeatureConfig, LoggingConfig, SecurityConfig, ServerConfig}
-import valmuri.di.{Container, ServiceRegistry}
+import valmuri.config.{
+  AppConfig,
+  ConfigLoader,
+  DatabaseConfig,
+  FeatureConfig,
+  LoggingConfig,
+  SecurityConfig,
+  ServerConfig,
+}
+import valmuri.di.{ Container, ServiceRegistry }
 import valmuri.routing.Router
 
 abstract class ValmuriApplication extends ZIOAppDefault {
@@ -18,33 +26,39 @@ abstract class ValmuriApplication extends ZIOAppDefault {
     val app = for {
       _      <- ZIO.logInfo("🎯 Initializing Valmuri Framework")
       config <- loadConfiguration()
-      _      <- runApplication(config)
+      router = routes()
+      _ <- runApplication(config, router)
     } yield ()
 
     app.provide(
-      ConfigLoader.live,
+      ConfigLoader.configLayer,
       ServiceRegistry.live,
       Container.live,
+      ZLayer.succeed(routes()),
+      ZLayer.fromZIO(ZIO.service[AppConfig].map(_.server)),
+      Server.live,
       ApplicationContext.live,
     )
   }
 
-  private def loadConfiguration(): ZIO[ConfigLoader, Throwable, AppConfig] = for {
-    configLoader <- ZIO.service[ConfigLoader]
-    baseConfig   <- configLoader.load()
+  private def loadConfiguration(): ZIO[AppConfig, Throwable, AppConfig] = for {
+    baseConfig <- ZIO.service[AppConfig]
     userConfig  = configure()
     finalConfig = mergeConfigs(baseConfig, userConfig)
   } yield finalConfig
 
   private def runApplication(
-      config: AppConfig
-  ): ZIO[Container with ApplicationContext, Throwable, Unit] = for {
-    context <- ZIO.service[ApplicationContext]
-    _       <- initialize()
-    _       <- context.start()
-    _       <- ZIO.addFinalizer(context.stop() *> shutdown())
-    _       <- ZIO.never // Keep app running
-  } yield ()
+      config: AppConfig,
+      router: Router,
+  ): ZIO[Container with ApplicationContext, Throwable, Unit] = ZIO.scoped {
+    for {
+      context <- ZIO.service[ApplicationContext]
+      _       <- initialize()
+      _       <- context.start()
+      _       <- ZIO.addFinalizer(context.stop().ignore *> shutdown().ignore)
+      _       <- ZIO.never // Keep app running
+    } yield ()
+  }
 
   private def mergeConfigs(base: AppConfig, user: AppConfig): AppConfig =
     // Intelligent config merging - user overrides take precedence

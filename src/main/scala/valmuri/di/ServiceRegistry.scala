@@ -7,11 +7,11 @@ trait ServiceRegistry {
   def register[A: ClassTag](name: String, layer: ZLayer[Any, Throwable, A]): UIO[Unit]
   def get[A: ClassTag](name: String): Task[A]
   def getAll[A: ClassTag]: Task[List[A]]
-  def wire[A: ClassTag]: ZLayer[Any, Throwable, A]
+  def wire[A: ClassTag: Tag]: ZLayer[Any, Throwable, A]
 }
 
 object ServiceRegistry {
-  private case class ServiceEntry[A](
+  case class ServiceEntry[A](
       name: String,
       serviceType: ClassTag[A],
       layer: ZLayer[Any, Throwable, A],
@@ -30,9 +30,7 @@ object ServiceRegistry {
         entry      <- ZIO
           .fromOption(serviceMap.get(name))
           .orElseFail(new RuntimeException(s"Service not found: $name"))
-        service <- entry.layer.build
-          .map(_.get)
-          .provideSomeLayer[Any](ZLayer.succeed(()))
+        service <- ZIO.scoped(entry.layer.build.map(_.get))
       } yield service.asInstanceOf[A]
 
     def getAll[A: ClassTag]: Task[List[A]] = {
@@ -41,14 +39,12 @@ object ServiceRegistry {
         serviceMap <- services.get
         matchingServices = serviceMap.values.filter(_.serviceType == targetType).toList
         services <- ZIO.foreach(matchingServices) { entry =>
-          entry.layer.build
-            .map(_.get.asInstanceOf[A])
-            .provideSomeLayer[Any](ZLayer.succeed(()))
+          ZIO.scoped(entry.layer.build.map(_.get.asInstanceOf[A]))
         }
       } yield services
     }
 
-    def wire[A: ClassTag]: ZLayer[Any, Throwable, A] = {
+    def wire[A: ClassTag: Tag]: ZLayer[Any, Throwable, A] = {
       val serviceName = implicitly[ClassTag[A]].runtimeClass.getSimpleName
       ZLayer.fromZIO(get[A](serviceName))
     }

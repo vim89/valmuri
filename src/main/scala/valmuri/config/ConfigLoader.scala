@@ -27,22 +27,17 @@ object ConfigLoader {
     } yield config
 
     def loadFromFile(path: String): Task[AppConfig] = for {
-      _         <- ZIO.logInfo(s"📁 Loading config from file: $path")
-      config    <- ZIO.attempt(ConfigFactory.parseFile(new File(path)))
-      appConfig <- ZIO
-        .fromEither(
-          read(AppConfig.config from ConfigSource.fromTypesafeConfig(config))
-        )
-        .mapError(err => new RuntimeException(s"Config parsing failed: $err"))
+      _      <- ZIO.logInfo(s"📁 Loading config from file: $path")
+      config <- ZIO.attempt(ConfigFactory.parseFile(new File(path)))
+      provider = ConfigProvider.fromTypesafeConfig(config)
+      appConfig <- ZIO.config(AppConfig.config).provideLayer(ZLayer.succeed(provider))
     } yield appConfig
 
     def loadFromEnvironment(): Task[AppConfig] = for {
       _         <- ZIO.logInfo("🌐 Loading config from environment variables")
       envConfig <- ZIO
-        .fromEither(
-          read(AppConfig.config from ConfigSource.fromSystemEnv)
-        )
-        .mapError(err => new RuntimeException(s"Environment config failed: $err"))
+        .config(AppConfig.config)
+        .provideLayer(ZLayer.succeed(ConfigProvider.envProvider))
     } yield envConfig
 
     def reload(): Task[AppConfig] = for {
@@ -74,11 +69,8 @@ object ConfigLoader {
             .resolve()
         }
 
-        appConfig <- ZIO
-          .fromEither(
-            read(AppConfig.config from ConfigSource.fromTypesafeConfig(hoconConfig))
-          )
-          .mapError(err => new RuntimeException(s"Configuration error: $err"))
+        provider = ConfigProvider.fromTypesafeConfig(hoconConfig)
+        appConfig <- ZIO.config(AppConfig.config).provideLayer(ZLayer.succeed(provider))
 
       } yield appConfig
     }
@@ -96,4 +88,9 @@ object ConfigLoader {
 
   val live: ZLayer[Any, Nothing, ConfigLoader] =
     ZLayer.succeed(ConfigLoaderLive())
+
+  val configLayer: ZLayer[Any, Throwable, AppConfig] =
+    ZLayer.fromZIO {
+      ConfigLoaderLive().load()
+    }
 }
