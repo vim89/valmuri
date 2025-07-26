@@ -33,8 +33,9 @@ jobs:
 
       - name: Install Mill 1.0.1
         run: |
-          curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.1/mill-dist-1.0.1-mill.sh -o mill
-          chmod +x mill
+          curl -L -o mill.sh https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.1/mill-dist-1.0.1-mill.sh
+          chmod +x mill.sh
+          export PATH=$PATH:$(pwd)/mill.sh
 
       - name: Verify Mill version
         run: mill --version
