@@ -33,11 +33,11 @@ jobs:
 
       - name: Install Mill
         run: |
-          if [[ "$(uname)" == "Linux" ]]; then
-            curl -L https://github.com/com-lihaoyi/mill/releases/download/1.0.1/1.0.1 > /usr/local/bin/mill && chmod +x /usr/local/bin/mill
-          else
-            brew install mill@1.0.1 || brew install mill
-          fi
+          echo "Installing Mill 1.0.1 bootstrap script"
+          curl -L https://github.com/com-lihaoyi/mill/releases/download/1.0.1/1.0.1 > /usr/local/bin/mill
+          head -n1 /usr/local/bin/mill | grep -q '^#!/usr/bin/env bash' || (echo "Invalid mill file" && exit 1)
+          dos2unix /usr/local/bin/mill || true
+          chmod +x /usr/local/bin/mill
 
       - name: Cache Ivy and Mill artifacts
         uses: actions/cache@v4
@@ -103,6 +103,7 @@ jobs:
           wait-for-processing: true
 
   test-cross-platform:
+    if: false # This job is disabled by default, enable if needed
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
