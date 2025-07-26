@@ -56,9 +56,7 @@ jobs:
 
       - name: Compile Modules
         run: |
-          ./mill.sh valmuri.compile
-          ./mill.sh cli.compile
-          ./mill.sh examples.helloWorld.compile
+          ./mill.sh visualize clean __compile
 
       - name: Run Unit Tests
         run: ./mill.sh testAll
