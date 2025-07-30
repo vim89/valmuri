@@ -13,6 +13,6 @@ object HelloApp extends VApplication {
 
 object Main {
   def main(args: Array[String]): Unit = {
-    HelloApp.start()
+    println(HelloApp.start())
   }
 }
