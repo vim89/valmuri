@@ -1,15 +1,14 @@
 package com.vitthalmirji.valmuri
 
-
 import com.vitthalmirji.valmuri.config.{VAutoConfig, VConfig}
 import com.vitthalmirji.valmuri.error.FrameworkError
+import com.vitthalmirji.valmuri.error.FrameworkError.{ConfigError, ServiceError}
 
 import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
- * Core framework trait - Spring Boot style autoconfiguration
- * Enhanced with Scala FP features: type aliases, error handling, lazy evaluation
+ * Core framework trait - Fixed for cross-compilation
  */
 trait VApplication {
 
@@ -20,17 +19,16 @@ trait VApplication {
   type ControllerList = List[VController]
 
   // Service registry - framework manages this (lazy initialization)
-  protected[valmuri] lazy val services: ServiceContainer = new VServices()
+  private[valmuri] lazy val services: ServiceContainer = new VServices()
 
   // Configuration - loaded lazily like Spring Boot
-  protected[valmuri] lazy val config: AppConfiguration = loadConfiguration()
+  private[valmuri] lazy val config: AppConfiguration = loadConfiguration()
 
   // Auto-configuration - happens lazily and safely
-  protected[valmuri] lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
+  private[valmuri] lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
 
   // Override these for custom configuration
   def configurationArgs(): Array[String] = Array.empty
-
   def configurationProfile(): String = ""
 
   // Register additional services (optional) - returns VResult for error handling
@@ -68,8 +66,8 @@ trait VApplication {
   // Pattern matching for safe auto-configuration
   private def autoConfigureComponents(): VResult[Unit] = {
     VResult.fromTry(Try(autoConfig.configure())).recoverWith {
-      case FrameworkError.ConfigError(msg) => VResult.failure(FrameworkError.ConfigError(msg))
-      case FrameworkError.ServiceError(msg) => VResult.failure(FrameworkError.ServiceError(msg))
+      case _: ConfigError => VResult.failure(FrameworkError.ConfigError("Configuration failed"))
+      case _: ServiceError => VResult.failure(FrameworkError.ServiceError("Service error"))
       case ex => VResult.failure(FrameworkError.UnexpectedError(ex.message))
     }
   }
@@ -91,10 +89,7 @@ trait VApplication {
   private def extractControllerRoutes(controllers: ControllerList): VResult[List[VRoute]] = {
     VResult.fromTry(Try {
       controllers.flatMap { controller =>
-        controller match {
-          case validController if validController != null => validController.routes()
-          case _ => List.empty[VRoute]
-        }
+        if (controller != null) controller.routes() else List.empty[VRoute]
       }
     })
   }
@@ -112,10 +107,10 @@ trait VApplication {
     VResult.fromTry(Try {
       val actuator = services.get[VActuator]
       List(
-        VRoute("/actuator/health", req => VResult.success(actuator.healthEndpoint())),
-        VRoute("/actuator/metrics", req => VResult.success(actuator.metricsEndpoint())),
-        VRoute("/actuator/info", req => VResult.success(actuator.infoEndpoint())),
-        VRoute("/health", req => VResult.success(actuator.healthEndpoint()))
+        VRoute("/actuator/health", _ => VResult.success(actuator.healthEndpoint())),
+        VRoute("/actuator/metrics", _ => VResult.success(actuator.metricsEndpoint())),
+        VRoute("/actuator/info", _ => VResult.success(actuator.infoEndpoint())),
+        VRoute("/health", _ => VResult.success(actuator.healthEndpoint()))
       )
     })
   }
@@ -123,8 +118,10 @@ trait VApplication {
   private def startServer(routes: List[VRoute]): VResult[VServer] = {
     VResult.fromTry(Try {
       val server = new VServer(config.serverHost, config.serverPort, routes)
-      server.start()
-      server
+      server.start() match {
+        case VResult.Success(_) => server
+        case VResult.Failure(error) => throw new RuntimeException(error.message)
+      }
     })
   }
 

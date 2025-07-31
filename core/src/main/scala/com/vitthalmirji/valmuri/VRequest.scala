@@ -1,5 +1,9 @@
 package com.vitthalmirji.valmuri
 
+import com.vitthalmirji.valmuri.HttpMethod.{
+  GET, POST, PUT, DELETE
+}
+import com.vitthalmirji.valmuri.HttpMethod
 import com.vitthalmirji.valmuri.error.FrameworkError
 
 import scala.util.Try
@@ -10,13 +14,25 @@ import scala.util.Try
 case class VRequest(path: String, method: HttpMethod, params: Map[String, String] = Map.empty,
                     headers: Map[String, String] = Map.empty, body: Option[String] = None) {
   // Pattern matching helpers
-  def isGet: Boolean = method == HttpMethod.GET
+  def isGet: Boolean = method match {
+    case GET => true
+    case _   => false
+  }
 
-  def isPost: Boolean = method == HttpMethod.POST
+  def isPost: Boolean = method match {
+    case POST => true
+    case _    => false
+  }
 
-  def isPut: Boolean = method == HttpMethod.PUT
+  def isPut: Boolean = method match {
+    case PUT => true
+    case _   => false
+  }
 
-  def isDelete: Boolean = method == HttpMethod.DELETE
+  def isDelete: Boolean = method match {
+    case DELETE => true
+    case _      => false
+  }
 
   // Safe parameter extraction with partial functions
   def getParam(key: String): Option[String] = params.get(key)

@@ -57,7 +57,7 @@ class EnhancedVHandler(route: VRoute) extends HttpHandler {
 
   private def extractBody(exchange: HttpExchange, method: HttpMethod): Option[String] = {
     method match {
-      case HttpMethod.POST | HttpMethod.PUT | HttpMethod.PATCH =>
+      case m if m == HttpMethod.POST || m == HttpMethod.PUT || m == HttpMethod.PATCH =>
         Try {
           val inputStream = exchange.getRequestBody
           val body = scala.io.Source.fromInputStream(inputStream).mkString
