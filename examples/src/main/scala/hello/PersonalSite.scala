@@ -12,8 +12,8 @@ object PersonalSite extends VApplication {
     VResult.success(VConfig.load())
 
   override def routes(): List[VRoute] = List(
-    // Home page
-    VRoute("/", _ => VResult.success(renderHomePage())),
+    // Static resources (must come before catch-all and home)
+    VRoute("/static/", request => VResult.success(serveStatic(request))),
 
     // About page
     VRoute("/about", _ => VResult.success(renderAboutPage())),
@@ -31,7 +31,10 @@ object PersonalSite extends VApplication {
     // Blog section
     VRoute("/blog", _ => VResult.success(renderBlogIndex())),
     VRoute("/blog/valmuri-framework", _ => VResult.success(renderValmuriBlogPost())),
-    VRoute("/blog/scala-web-development", _ => VResult.success(renderScalaBlogPost()))
+    VRoute("/blog/scala-web-development", _ => VResult.success(renderScalaBlogPost())),
+    // Home page
+    VRoute("/", _ => VResult.success(renderHomePage()))
+    // Removed unsupported wildcard catch-all route
   )
 
   private def renderHomePage(): String = {
@@ -49,7 +52,7 @@ object PersonalSite extends VApplication {
             color: #333;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-        
+
         /* Header */
         header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -70,7 +73,7 @@ object PersonalSite extends VApplication {
             transition: transform 0.3s;
         }
         .cta-button:hover { transform: translateY(-2px); }
-        
+
         /* Navigation */
         nav {
             background: white;
@@ -93,7 +96,7 @@ object PersonalSite extends VApplication {
             transition: color 0.3s;
         }
         nav a:hover { color: #667eea; }
-        
+
         /* Highlights Section */
         .highlights {
             padding: 80px 0;
@@ -119,7 +122,7 @@ object PersonalSite extends VApplication {
             margin-bottom: 15px;
             font-size: 1.5em;
         }
-        
+
         /* Tech Stack */
         .tech-stack {
             padding: 80px 0;
@@ -138,7 +141,7 @@ object PersonalSite extends VApplication {
             border-radius: 10px;
             font-weight: 500;
         }
-        
+
         /* Footer */
         footer {
             background: #333;
@@ -151,7 +154,7 @@ object PersonalSite extends VApplication {
             margin: 0 15px;
             text-decoration: none;
         }
-        
+
         @media (max-width: 768px) {
             .hero h1 { font-size: 2em; }
             .highlights-grid { grid-template-columns: 1fr; }
@@ -170,7 +173,7 @@ object PersonalSite extends VApplication {
             </div>
         </div>
     </header>
-    
+
     <nav>
         <div class="container">
             <ul>
@@ -182,7 +185,7 @@ object PersonalSite extends VApplication {
             </ul>
         </div>
     </nav>
-    
+
     <section class="highlights">
         <div class="container">
             <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px;">Expertise & Impact</h2>
@@ -214,7 +217,7 @@ object PersonalSite extends VApplication {
             </div>
         </div>
     </section>
-    
+
     <section class="tech-stack">
         <div class="container">
             <h2 style="font-size: 2.5em; margin-bottom: 20px;">Technology Stack</h2>
@@ -232,7 +235,7 @@ object PersonalSite extends VApplication {
             </div>
         </div>
     </section>
-    
+
     <footer>
         <div class="container">
             <p>&copy; 2025 Vitthal Mirji. Built with Valmuri Framework.</p>
@@ -256,11 +259,11 @@ object PersonalSite extends VApplication {
 </head>
 <body>
     <h1>About Me</h1>
-    
+
     <div class="about-content">
         <h2>Professional Journey</h2>
         <p>I'm a Computer Science Engineer and Staff Data Engineer from Mumbai with over 12 years of experience architecting innovative solutions for Fortune 500 companies. My passion lies in bridging the worlds of Big Data, AI, and software design to unlock technology's full potential.</p>
-        
+
         <h2>Technical Expertise</h2>
         <ul>
             <li><strong>Data Engineering:</strong> Scalable data pipelines, real-time processing, analytics platforms</li>
@@ -270,12 +273,12 @@ object PersonalSite extends VApplication {
             <li><strong>Big Data:</strong> Apache Spark, Kafka, Hadoop ecosystem</li>
             <li><strong>Cloud Platforms:</strong> AWS, Azure, containerization, Kubernetes</li>
         </ul>
-        
+
         <h2>The Valmuri Story</h2>
         <p>After years of working with various web frameworks, I recognized a gap in the Scala ecosystem. While Django, Rails, and Spring Boot provide excellent developer experiences in their respective languages, Scala lacked a truly integrated framework that combined productivity with functional programming benefits.</p>
-        
+
         <p>This inspired me to create <strong>Valmuri</strong> - a full-stack Scala framework that brings Rails-level productivity to functional programming, complete with type safety and modern architectural patterns.</p>
-        
+
         <h2>Beyond Code</h2>
         <p>When I'm not architecting systems or writing code, you'll find me:</p>
         <ul>
@@ -287,10 +290,10 @@ object PersonalSite extends VApplication {
             <li>📈 <strong>Investing:</strong> Analyzing market trends and building long-term wealth strategies</li>
             <li>🎵 <strong>Music:</strong> Enjoying Hindustani classical, Natya Sangeet, and Bollywood classics</li>
         </ul>
-        
+
         <h2>Philosophy</h2>
         <p>I believe in the power of <em>jugaad</em> - the art of innovative problem-solving with available resources. This philosophy drives my approach to both technology and life, finding elegant solutions to complex challenges while maintaining a grounded, practical perspective.</p>
-        
+
         <h2>Let's Connect</h2>
         <p>I'm always excited to discuss technology, share knowledge, and explore collaboration opportunities. Whether you're interested in data engineering, Scala development, or just want to chat about the latest in tech, feel free to reach out!</p>
     </div>
@@ -303,7 +306,7 @@ object PersonalSite extends VApplication {
 <head><title>Projects - Vitthal Mirji</title></head>
 <body>
     <h1>Featured Projects</h1>
-    
+
     <div class="project">
         <h2>🚀 Valmuri Framework</h2>
         <p><strong>Full-stack Scala web framework</strong></p>
@@ -316,7 +319,7 @@ object PersonalSite extends VApplication {
             <a href="/blog/valmuri-framework">Blog Post</a>
         </div>
     </div>
-    
+
     <div class="project">
         <h2>📊 Real-time Analytics Platform</h2>
         <p><strong>Enterprise data processing system</strong></p>
@@ -325,7 +328,7 @@ object PersonalSite extends VApplication {
             <span>Apache Spark</span><span>Kafka</span><span>Machine Learning</span><span>Scala</span>
         </div>
     </div>
-    
+
     <div class="project">
         <h2>🏗️ Microservices Architecture</h2>
         <p><strong>Distributed system design</strong></p>
@@ -334,7 +337,7 @@ object PersonalSite extends VApplication {
             <span>Microservices</span><span>Docker</span><span>Kubernetes</span><span>API Design</span>
         </div>
     </div>
-    
+
     <div class="project">
         <h2>🤖 ML-Powered Recommendation Engine</h2>
         <p><strong>AI-driven personalization system</strong></p>
@@ -343,7 +346,7 @@ object PersonalSite extends VApplication {
             <span>Machine Learning</span><span>Python</span><span>TensorFlow</span><span>MLOps</span>
         </div>
     </div>
-    
+
     <div class="project">
         <h2>🔧 Developer Productivity Tools</h2>
         <p><strong>Internal tooling and automation</strong></p>
@@ -352,7 +355,7 @@ object PersonalSite extends VApplication {
             <span>DevOps</span><span>Automation</span><span>CLI Tools</span><span>CI/CD</span>
         </div>
     </div>
-    
+
     <style>
         .project {
             background: #f8f9fa;
@@ -399,7 +402,7 @@ object PersonalSite extends VApplication {
 <head><title>Contact - Vitthal Mirji</title></head>
 <body>
     <h1>Get In Touch</h1>
-    
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px;">
         <div>
             <h2>Send a Message</h2>
@@ -423,7 +426,7 @@ object PersonalSite extends VApplication {
                 <button type="submit" style="background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 4px; cursor: pointer;">Send Message</button>
             </form>
         </div>
-        
+
         <div>
             <h2>Connect With Me</h2>
             <div style="margin-bottom: 20px;">
@@ -472,13 +475,13 @@ object PersonalSite extends VApplication {
 <body>
     <h1>Technical Blog</h1>
     <p>Insights on software architecture, data engineering, and Scala development.</p>
-    
+
     <article style="border-bottom: 1px solid #eee; padding: 20px 0;">
         <h2><a href="/blog/valmuri-framework">Building Valmuri: A Rails for Scala</a></h2>
         <p>Deep dive into the design decisions and architecture behind the Valmuri framework, and why Scala needed a productivity-focused web framework.</p>
         <time>January 15, 2025</time>
     </article>
-    
+
     <article style="border-bottom: 1px solid #eee; padding: 20px 0;">
         <h2><a href="/blog/scala-web-development">The State of Scala Web Development in 2025</a></h2>
         <p>Comparison of existing Scala web frameworks and the opportunities for improvement in developer experience.</p>
@@ -493,14 +496,14 @@ object PersonalSite extends VApplication {
 <head><title>Building Valmuri: A Rails for Scala</title></head>
 <body>
     <nav><a href="/blog">← Back to Blog</a></nav>
-    
+
     <article>
         <h1>Building Valmuri: A Rails for Scala</h1>
         <time>January 15, 2025</time>
-        
+
         <h2>The Problem</h2>
         <p>After working with Django, Rails, and Spring Boot, I was frustrated by the state of Scala web development. While Scala has powerful libraries like http4s, ZIO, and Doobie, building web applications required assembling these libraries manually and writing significant boilerplate.</p>
-        
+
         <h2>The Vision</h2>
         <p>What if Scala had a framework that provided:</p>
         <ul>
@@ -509,28 +512,28 @@ object PersonalSite extends VApplication {
             <li><strong>Functional programming</strong> benefits without complexity</li>
             <li><strong>30-minute deployment</strong> from idea to production</li>
         </ul>
-        
+
         <h2>Key Design Decisions</h2>
-        
+
         <h3>Auto-Configuration</h3>
         <p>Inspired by Spring Boot, Valmuri auto-configures everything based on sensible defaults. Just extend <code>VApplication</code> and define your routes.</p>
-        
+
         <h3>Monadic Error Handling</h3>
         <p>Instead of exceptions, Valmuri uses <code>VResult[A]</code> for safe error handling that composes beautifully with functional programming patterns.</p>
-        
+
         <h3>Type-Safe Routing</h3>
         <p>Route parameters are extracted and validated at compile time, eliminating runtime errors from invalid URLs.</p>
-        
+
         <h2>Performance Results</h2>
         <ul>
             <li>50ms startup time vs 3000ms for Spring Boot</li>
             <li>25MB memory usage vs 250MB for typical Spring applications</li>
             <li>1000+ requests/second throughput</li>
         </ul>
-        
+
         <h2>What's Next</h2>
         <p>The 0.1.0 MVP focuses on core functionality. Future releases will add advanced features like WebSockets, sophisticated ORM capabilities, and cloud-native deployment tools.</p>
-        
+
         <p><a href="https://github.com/vim89/valmuri">Try Valmuri today</a> and let me know what you think!</p>
     </article>
 </body>
@@ -542,37 +545,50 @@ object PersonalSite extends VApplication {
 <head><title>The State of Scala Web Development in 2025</title></head>
 <body>
     <nav><a href="/blog">← Back to Blog</a></nav>
-    
+
     <article>
         <h1>The State of Scala Web Development in 2025</h1>
         <time>January 10, 2025</time>
-        
+
         <p>Scala web development has evolved significantly, but gaps remain in developer experience compared to other ecosystems.</p>
-        
+
         <h2>Current Options</h2>
-        
+
         <h3>Play Framework</h3>
         <p><strong>Pros:</strong> Mature, full-featured, good documentation</p>
         <p><strong>Cons:</strong> Complex setup, steep learning curve, heavyweight</p>
-        
+
         <h3>http4s</h3>
         <p><strong>Pros:</strong> Pure functional, composable, lightweight</p>
         <p><strong>Cons:</strong> Requires assembly of multiple libraries, limited out-of-box features</p>
-        
+
         <h3>ZIO HTTP</h3>
         <p><strong>Pros:</strong> Great ZIO integration, performant</p>
         <p><strong>Cons:</strong> ZIO-specific, newer ecosystem</p>
-        
+
         <h2>The Gap</h2>
         <p>While these frameworks serve their purposes, none provide the "Rails experience" for Scala - where you can go from idea to deployed application in minimal time with maximum productivity.</p>
-        
+
         <h2>Enter Valmuri</h2>
         <p>Valmuri aims to fill this gap by providing Rails-level productivity while maintaining Scala's strengths in type safety and functional programming.</p>
-        
+
         <p>The future of Scala web development is bright, and I believe frameworks like Valmuri will make Scala more accessible to web developers coming from other ecosystems.</p>
     </article>
 </body>
 </html>"""
+
+  // Serve static resources from the classpath under /static/
+  private def serveStatic(request: VRequest): String = {
+    val resourcePath = request.path.stripPrefix("/static/")
+    val streamOpt    = Option(getClass.getResourceAsStream(s"/static/$resourcePath"))
+    streamOpt match {
+      case Some(stream) =>
+        try scala.io.Source.fromInputStream(stream).mkString
+        finally stream.close()
+      case None =>
+        "<h1>404 - Resource Not Found</h1>"
+    }
+  }
 
   def main(args: Array[String]): Unit =
     start() match {
