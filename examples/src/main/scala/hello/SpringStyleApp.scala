@@ -1,6 +1,6 @@
 package hello
 
-import com.vitthalmirji.valmuri.{VApplication, VController, VResult, VRoute}
+import com.vitthalmirji.valmuri.{ VApplication, VController, VResult, VRoute }
 
 /**
  * Spring Boot style - everything auto-configured!
@@ -23,12 +23,11 @@ class UserServiceImpl extends UserService {
 
 class UserController(userService: UserService) extends VController {
   def routes(): List[VRoute] = List(
-    VRoute("/api/users", _ => VResult.success( userService.getUsers))
+    VRoute("/api/users", _ => VResult.success(userService.getUsers))
   )
 }
 
 object SpringMain {
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     println(SpringStyleApp.start())
-  }
 }

@@ -5,9 +5,9 @@ package com.vitthalmirji.valmuri.metrics
  */
 
 object ServerMetrics {
-  @volatile private var totalRequests: Long = 0
+  @volatile private var totalRequests: Long    = 0
   @volatile private var activeConnections: Int = 0
-  private val startTime = System.currentTimeMillis()
+  private val startTime                        = System.currentTimeMillis()
 
   def incrementRequests(): Unit = totalRequests += 1
 

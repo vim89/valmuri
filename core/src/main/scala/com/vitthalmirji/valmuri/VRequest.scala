@@ -1,9 +1,6 @@
 package com.vitthalmirji.valmuri
 
-import com.vitthalmirji.valmuri.HttpMethod.{
-  GET, POST, PUT, DELETE
-}
-import com.vitthalmirji.valmuri.HttpMethod
+import com.vitthalmirji.valmuri.HttpMethod.{ DELETE, GET, POST, PUT }
 import com.vitthalmirji.valmuri.error.FrameworkError
 
 import scala.util.Try
@@ -11,8 +8,13 @@ import scala.util.Try
 /**
  * Enhanced request with pattern matching support
  */
-case class VRequest(path: String, method: HttpMethod, params: Map[String, String] = Map.empty,
-                    headers: Map[String, String] = Map.empty, body: Option[String] = None) {
+case class VRequest(
+  path: String,
+  method: HttpMethod,
+  params: Map[String, String] = Map.empty,
+  headers: Map[String, String] = Map.empty,
+  body: Option[String] = None
+) {
   // Pattern matching helpers
   def isGet: Boolean = method match {
     case GET => true
@@ -40,13 +42,14 @@ case class VRequest(path: String, method: HttpMethod, params: Map[String, String
   def getRequiredParam(key: String): VResult[String] =
     params.get(key) match {
       case Some(value) => VResult.success(value)
-      case None => VResult.failure(FrameworkError.MissingParameter(key))
+      case None        => VResult.failure(FrameworkError.MissingParameter(key))
     }
 
   // Type-safe parameter extraction
   def getIntParam(key: String): VResult[Int] =
     getRequiredParam(key).flatMap { value =>
-      VResult.fromTry(Try(value.toInt))
+      VResult
+        .fromTry(Try(value.toInt))
         .mapError(_ => FrameworkError.InvalidParameter(key, "Expected integer"))
     }
 }

@@ -16,7 +16,7 @@ class VServicesTest extends munit.FunSuite {
   }
 
   test("VServices should register and retrieve services") {
-    val services = new VServices()
+    val services    = new VServices()
     val testService = new TestServiceImpl()
 
     services.register[TestService](testService)

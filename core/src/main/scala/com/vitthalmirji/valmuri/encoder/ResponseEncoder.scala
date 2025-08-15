@@ -2,8 +2,8 @@ package com.vitthalmirji.valmuri.encoder
 
 object ResponseEncoder {
   // Implicit instances for common types
-  implicit val stringEncoder: ResponseEncoder[String] = (value: String) => value
-  implicit val intEncoder: ResponseEncoder[Int] = (value: Int) => value.toString
+  implicit val stringEncoder: ResponseEncoder[String]   = (value: String) => value
+  implicit val intEncoder: ResponseEncoder[Int]         = (value: Int) => value.toString
   implicit val booleanEncoder: ResponseEncoder[Boolean] = (value: Boolean) => value.toString
 
   // Generic encoder for case classes (simple toString)
@@ -19,7 +19,7 @@ object ResponseEncoder {
   // Option encoder
   implicit def optionEncoder[A: ResponseEncoder]: ResponseEncoder[Option[A]] = {
     case Some(value) => implicitly[ResponseEncoder[A]].encode(value)
-    case None => "null"
+    case None        => "null"
   }
 }
 

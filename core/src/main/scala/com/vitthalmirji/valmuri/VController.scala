@@ -1,6 +1,6 @@
 package com.vitthalmirji.valmuri
 
-import com.vitthalmirji.valmuri.encoder.{JsonEncoder, ResponseEncoder}
+import com.vitthalmirji.valmuri.encoder.{ JsonEncoder, ResponseEncoder }
 import com.vitthalmirji.valmuri.error.FrameworkError
 
 import scala.concurrent.Future
@@ -13,7 +13,7 @@ abstract class VController {
 
   // Type aliases for cleaner signatures
   type ControllerAction[A] = VRequest => VResult[A]
-  type AsyncAction[A] = VRequest => Future[VResult[A]]
+  type AsyncAction[A]      = VRequest => Future[VResult[A]]
 
   def routes(): List[VRoute]
 
@@ -47,13 +47,12 @@ abstract class VController {
     post: => VResult[A] = VResult.failure(FrameworkError.RoutingError("POST not supported")),
     put: => VResult[A] = VResult.failure(FrameworkError.RoutingError("PUT not supported")),
     delete: => VResult[A] = VResult.failure(FrameworkError.RoutingError("DELETE not supported"))
-  ): VResult[A] = {
+  ): VResult[A] =
     request.method match {
-      case HttpMethod.GET => get
-      case HttpMethod.POST => post
-      case HttpMethod.PUT => put
+      case HttpMethod.GET    => get
+      case HttpMethod.POST   => post
+      case HttpMethod.PUT    => put
       case HttpMethod.DELETE => delete
-      case _ => VResult.failure(FrameworkError.RoutingError(s"Method ${request.method} not supported"))
+      case _                 => VResult.failure(FrameworkError.RoutingError(s"Method ${request.method} not supported"))
     }
-  }
 }

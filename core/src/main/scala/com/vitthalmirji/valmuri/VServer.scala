@@ -1,190 +1,237 @@
 package com.vitthalmirji.valmuri
 
-import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
+import com.sun.net.httpserver.{ HttpExchange, HttpHandler, HttpServer }
+import com.vitthalmirji.valmuri.config.VConfig
 import com.vitthalmirji.valmuri.error.FrameworkError
 
+import java.io.InputStream
 import java.net.InetSocketAddress
-import scala.util.Try
+import java.util.concurrent.{ Executors, ThreadPoolExecutor, TimeUnit }
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
+import scala.util.{ Try, Using }
 
 /**
- * Enhanced HTTP server - Fixed for compilation
+ * Production-ready HTTP server
  */
-private[valmuri] class VServer(host: String, port: Int, routes: List[VRoute]) {
+class VServer(config: VConfig) {
 
-  private var serverInstance: Option[HttpServer] = None
+  private var server: Option[HttpServer]           = None
+  private var executor: Option[ThreadPoolExecutor] = None
+  private val routeRegistry                        = mutable.Map[String, VRoute]()
 
-  def start(): VResult[Unit] = {
+  def start(routes: List[VRoute]): VResult[Unit] =
     VResult.fromTry(Try {
-      val server = HttpServer.create(new InetSocketAddress(host, port), 0)
+      // Create thread pool
+      val threadPool = Executors
+        .newFixedThreadPool(
+          config.serverThreads,
+          (r: Runnable) => {
+            val t = new Thread(r, s"valmuri-http-${Thread.activeCount()}")
+            t.setDaemon(true)
+            t
+          }
+        )
+        .asInstanceOf[ThreadPoolExecutor]
 
-      // Register all routes with enhanced error handling
-      routes.foreach(registerRoute(server, _))
+      // Create HTTP server
+      val httpServer = HttpServer.create(
+        new InetSocketAddress(config.serverHost, config.serverPort),
+        config.serverBacklog
+      )
 
-      // Add default error handler
-      server.createContext("/", new DefaultHandler(routes))
+      // Configure server
+      httpServer.setExecutor(threadPool)
 
-      server.setExecutor(null)
-      server.start()
-      serverInstance = Some(server)
-
-      println(s"🌐 Server started on $host:$port")
-    })
-  }
-
-  def stop(): VResult[Unit] = {
-    VResult.fromTry(Try {
-      serverInstance.foreach { server =>
-        server.stop(0)
-        println("🛑 Server stopped")
+      // Register routes
+      routes.foreach { route =>
+        routeRegistry(route.path) = route
+        httpServer.createContext(route.path, new VHttpHandler(route, config))
       }
-      serverInstance = None
-    })
-  }
 
-  private def registerRoute(server: HttpServer, route: VRoute): Unit = {
-    server.createContext(route.path, new EnhancedVHandler(route)): Unit
-  }
+      // Add default handler for 404
+      httpServer.createContext("/", new DefaultHandler(routeRegistry.keys.toList))
+
+      // Start server
+      httpServer.start()
+
+      server = Some(httpServer)
+      executor = Some(threadPool)
+    })
+
+  def stop(): VResult[Unit] =
+    VResult.fromTry(Try {
+      server.foreach(s => s.stop(config.serverShutdownDelay))
+
+      executor.foreach { e =>
+        e.shutdown()
+        if (!e.awaitTermination(config.serverShutdownDelay.toLong, TimeUnit.SECONDS)) {
+          e.shutdownNow()
+        }
+      }
+
+      server = None
+      executor = None
+    })
 }
 
 /**
- * Enhanced HTTP handler - Fixed imports and error handling
+ * HTTP request handler
  */
-private class EnhancedVHandler(route: VRoute) extends HttpHandler {
+class VHttpHandler(route: VRoute, config: VConfig) extends HttpHandler {
 
-  def handle(exchange: HttpExchange): Unit = {
-    val request = extractRequest(exchange)
+  override def handle(exchange: HttpExchange): Unit =
+    try {
+      // Parse request
+      val request = parseRequest(exchange)
 
-    val responseResult = route.handler(request)
+      // Handle request
+      val result = route.handler(request)
 
-    responseResult match {
-      case VResult.Success(content) =>
-        sendSuccessResponse(exchange, content)
-      case VResult.Failure(error) =>
-        sendErrorResponse(exchange, error)
+      // Send response
+      result match {
+        case VResult.Success(content) =>
+          sendResponse(exchange, 200, content)
+
+        case VResult.Failure(error) =>
+          val (status, message) = error match {
+            case FrameworkError.NotFound(_)     => (404, error.message)
+            case FrameworkError.BadRequest(_)   => (400, error.message)
+            case FrameworkError.Unauthorized(_) => (401, error.message)
+            case FrameworkError.Forbidden(_)    => (403, error.message)
+            case _                              => (500, "Internal Server Error")
+          }
+          sendResponse(exchange, status, errorJson(message))
+      }
+    } catch {
+      case ex: Exception =>
+        sendResponse(exchange, 500, errorJson(ex.getMessage))
     }
-  }
 
-  private def extractRequest(exchange: HttpExchange): VRequest = {
-    val uri = exchange.getRequestURI
-    val method = HttpMethod.fromString(exchange.getRequestMethod)
+  private def parseRequest(exchange: HttpExchange): VRequest = {
+    val method = exchange.getRequestMethod
+    val uri    = exchange.getRequestURI
+    val path   = uri.getPath
 
-    val headers = exchange.getRequestHeaders.asScala.view
-      .mapValues(_.asScala.headOption.getOrElse("")).toMap
+    // Parse query parameters
+    val queryParams = Option(uri.getQuery).fold(Map.empty[String, String]) { query =>
+      query
+        .split("&")
+        .map { param =>
+          val parts = param.split("=", 2)
+          if (parts.length == 2) {
+            parts(0) -> java.net.URLDecoder.decode(parts(1), "UTF-8")
+          } else {
+            parts(0) -> ""
+          }
+        }
+        .toMap
+    }
 
-    val body = extractBody(exchange, method)
-    val params = extractParams(uri)
+    // Parse headers
+    val headers = exchange.getRequestHeaders.asScala.map { case (k, v) =>
+      k -> v.asScala.mkString(",")
+    }.toMap
+
+    // Parse body (if present)
+    val body = if (Set("POST", "PUT", "PATCH").contains(method)) {
+      readBody(exchange.getRequestBody, config.maxRequestSize)
+    } else {
+      None
+    }
+
+    // Parse path parameters (simplified - real implementation would use regex)
+    val pathParams = extractPathParams(route.path, path)
 
     VRequest(
-      path = uri.getPath,
       method = method,
-      params = params,
+      path = path,
+      queryParams = queryParams,
+      pathParams = pathParams,
       headers = headers,
       body = body
     )
   }
 
-  private def extractBody(exchange: HttpExchange, method: HttpMethod): Option[String] = {
-    method match {
-      case HttpMethod.POST | HttpMethod.PUT | HttpMethod.PATCH =>
-        Try {
-          val inputStream = exchange.getRequestBody
-          val body = scala.io.Source.fromInputStream(inputStream, "UTF-8").mkString
-          inputStream.close()
-          if (body.nonEmpty) Some(body) else None
-        }.getOrElse(None)
-      case _ => None
+  private def readBody(input: InputStream, maxSize: Int): Option[String] =
+    Using.resource(input) { stream =>
+      val bytes = stream.readNBytes(maxSize)
+      if (bytes.nonEmpty) Some(new String(bytes, "UTF-8")) else None
     }
-  }
 
-  private def extractParams(uri: java.net.URI): Map[String, String] = {
-    Option(uri.getQuery).fold(Map.empty[String, String]) { query =>
-      query.split("&").flatMap { param =>
-        param.split("=", 2) match {
-          case Array(key, value) => Some(key -> java.net.URLDecoder.decode(value, "UTF-8"))
-          case Array(key) => Some(key -> "")
-          case _ => None
+  private def extractPathParams(pattern: String, actual: String): Map[String, String] = {
+    // Simple implementation - real one would use regex
+    // Example: /users/:id -> /users/123 => Map("id" -> "123")
+
+    val patternParts = pattern.split("/").filter(_.nonEmpty)
+    val actualParts  = actual.split("/").filter(_.nonEmpty)
+
+    if (patternParts.length != actualParts.length) {
+      Map.empty
+    } else {
+      patternParts
+        .zip(actualParts)
+        .collect {
+          case (p, a) if p.startsWith(":") =>
+            p.substring(1) -> a
         }
-      }.toMap
+        .toMap
     }
   }
 
-  private def sendSuccessResponse(exchange: HttpExchange, content: String): Unit = {
-    sendResponse(exchange, 200, content, getContentType(content))
-  }
+  private def sendResponse(exchange: HttpExchange, status: Int, content: String): Unit = {
+    val bytes = content.getBytes("UTF-8")
 
-  private def sendErrorResponse(exchange: HttpExchange, error: FrameworkError): Unit = {
-    val (statusCode, content) = error match {
-      case FrameworkError.MissingParameter(_) | FrameworkError.InvalidParameter(_, _) =>
-        (400, createErrorJson(error))
-      case FrameworkError.RoutingError(_) =>
-        (404, createErrorJson(error))
-      case FrameworkError.ConfigError(_) | FrameworkError.ServiceError(_) =>
-        (500, createErrorJson(error))
-      case FrameworkError.UnexpectedError(_) =>
-        (500, createErrorJson(error))
+    // Set headers
+    exchange.getResponseHeaders.add("Content-Type", detectContentType(content))
+    exchange.getResponseHeaders.add("Server", "Valmuri/0.1.0")
+
+    // Add CORS headers if configured
+    if (config.corsEnabled) {
+      exchange.getResponseHeaders.add("Access-Control-Allow-Origin", config.corsOrigin)
+      exchange.getResponseHeaders.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+      exchange.getResponseHeaders.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
     }
 
-    sendResponse(exchange, statusCode, content, "application/json")
+    // Send response
+    exchange.sendResponseHeaders(status, bytes.length.toLong)
+
+    Using.resource(exchange.getResponseBody) { output =>
+      output.write(bytes)
+      output.flush()
+    }
   }
 
-  private def sendResponse(exchange: HttpExchange, statusCode: Int, content: String, contentType: String): Unit = {
-    Try {
-      val responseBytes = content.getBytes("UTF-8")
-
-      exchange.getResponseHeaders.set("Content-Type", contentType)
-      exchange.getResponseHeaders.set("Access-Control-Allow-Origin", "*")
-      exchange.getResponseHeaders.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-      exchange.getResponseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-      exchange.sendResponseHeaders(statusCode, responseBytes.length.toLong)
-      val outputStream = exchange.getResponseBody
-      outputStream.write(responseBytes)
-      outputStream.close()
-    }.recover { case ex =>
-      println(s"❌ Error sending response: ${ex.getMessage}")
-    }: Unit
-  }
-
-  private def getContentType(content: String): String = {
+  private def detectContentType(content: String): String =
     content.trim match {
-      case json if json.startsWith("{") || json.startsWith("[") => "application/json"
-      case html if html.startsWith("<") => "text/html"
-      case _ => "text/plain"
+      case s if s.startsWith("{") || s.startsWith("[")             => "application/json"
+      case s if s.startsWith("<!DOCTYPE") || s.startsWith("<html") => "text/html"
+      case s if s.startsWith("<?xml")                              => "application/xml"
+      case _                                                       => "text/plain"
     }
-  }
 
-  private def createErrorJson(error: FrameworkError): String = {
-    s"""{
-      "error": "${error.code}",
-      "message": "${error.message}",
-      "timestamp": "${java.time.Instant.now()}"
-    }"""
-  }
+  private def errorJson(message: String): String =
+    s"""{"error":"${message.replace("\"", "\\\"")}","timestamp":"${java.time.Instant.now()}"}"""
 }
 
 /**
- * Default handler for unmatched routes
+ * Default 404 handler
  */
-private class DefaultHandler(routes: List[VRoute]) extends HttpHandler {
+class DefaultHandler(knownPaths: List[String]) extends HttpHandler {
+  override def handle(exchange: HttpExchange): Unit = {
+    val path        = exchange.getRequestURI.getPath
+    val suggestions = knownPaths.filter(_.contains(path.split("/").last)).take(3)
 
-  def handle(exchange: HttpExchange): Unit = {
-    val path = exchange.getRequestURI.getPath
-    val method = exchange.getRequestMethod
+    val response = s"""{
+      "error": "Not Found",
+      "path": "$path",
+      "suggestions": [${suggestions.map(s => s""""$s"""").mkString(",")}]
+    }"""
 
-    val hasMatchingRoute = routes.exists(_.path == path)
+    exchange.getResponseHeaders.add("Content-Type", "application/json")
+    val bytes = response.getBytes("UTF-8")
+    exchange.sendResponseHeaders(404, bytes.length.toLong)
 
-    val (statusCode, content) = if (hasMatchingRoute) {
-      (405, s"""{"error": "METHOD_NOT_ALLOWED", "message": "Method $method not allowed for $path"}""")
-    } else {
-      (404, s"""{"error": "NOT_FOUND", "message": "No route found for $method $path"}""")
-    }
-
-    val responseBytes = content.getBytes("UTF-8")
-    exchange.getResponseHeaders.set("Content-Type", "application/json")
-    exchange.sendResponseHeaders(statusCode, responseBytes.length.toLong)
-    val outputStream = exchange.getResponseBody
-    outputStream.write(responseBytes)
-    outputStream.close()
+    Using.resource(exchange.getResponseBody)(output => output.write(bytes))
   }
 }

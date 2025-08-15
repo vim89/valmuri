@@ -1,6 +1,6 @@
 package com.vitthalmirji.valmuri.handler
 
-import com.sun.net.httpserver.{HttpExchange, HttpHandler}
+import com.sun.net.httpserver.{ HttpExchange, HttpHandler }
 import com.vitthalmirji.valmuri.VRoute
 
 /**
@@ -9,7 +9,7 @@ import com.vitthalmirji.valmuri.VRoute
 class DefaultHandler(routes: List[VRoute]) extends HttpHandler {
 
   def handle(exchange: HttpExchange): Unit = {
-    val path = exchange.getRequestURI.getPath
+    val path   = exchange.getRequestURI.getPath
     val method = exchange.getRequestMethod
 
     // Check if any route pattern might match (simplified)

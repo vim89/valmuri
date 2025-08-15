@@ -1,6 +1,6 @@
 package com.vitthalmirji.valmuri
 
-import com.vitthalmirji.valmuri.encoder.{JsonEncoder, ResponseEncoder}
+import com.vitthalmirji.valmuri.encoder.{ JsonEncoder, ResponseEncoder }
 import com.vitthalmirji.valmuri.error.FrameworkError
 
 /**
@@ -35,12 +35,12 @@ abstract class CrudController[T: JsonEncoder, ID: ResponseEncoder] extends VCont
   private def handleShow: VRequest => VResult[String] = { req =>
     matchMethod(req)(
       get = for {
-        idStr <- req.getRequiredParam("id")
-        id <- parseId(idStr)
+        idStr     <- req.getRequiredParam("id")
+        id        <- parseId(idStr)
         entityOpt <- findById(id)
         result <- entityOpt match {
           case Some(entity) => json(entity)
-          case None => notFound(s"Entity with id $id not found")
+          case None         => notFound(s"Entity with id $id not found")
         }
       } yield result
     )
@@ -49,10 +49,10 @@ abstract class CrudController[T: JsonEncoder, ID: ResponseEncoder] extends VCont
   private def handleCreate: VRequest => VResult[String] = { req =>
     matchMethod(req)(
       post = for {
-        body <- req.body.fold(VResult.failure[String](FrameworkError.MissingParameter("body")))(VResult.success)
-        entity <- parseEntity(body)
+        body    <- req.body.fold(VResult.failure[String](FrameworkError.MissingParameter("body")))(VResult.success)
+        entity  <- parseEntity(body)
         created <- create(entity)
-        result <- json(created)
+        result  <- json(created)
       } yield result
     )
   }
@@ -60,12 +60,12 @@ abstract class CrudController[T: JsonEncoder, ID: ResponseEncoder] extends VCont
   private def handleUpdate: VRequest => VResult[String] = { req =>
     matchMethod(req)(
       put = for {
-        idStr <- req.getRequiredParam("id")
-        id <- parseId(idStr)
-        body <- req.body.fold(VResult.failure[String](FrameworkError.MissingParameter("body")))(VResult.success)
-        entity <- parseEntity(body)
+        idStr   <- req.getRequiredParam("id")
+        id      <- parseId(idStr)
+        body    <- req.body.fold(VResult.failure[String](FrameworkError.MissingParameter("body")))(VResult.success)
+        entity  <- parseEntity(body)
         updated <- update(id, entity)
-        result <- json(updated)
+        result  <- json(updated)
       } yield result
     )
   }
@@ -73,10 +73,10 @@ abstract class CrudController[T: JsonEncoder, ID: ResponseEncoder] extends VCont
   private def handleDelete: VRequest => VResult[String] = { req =>
     matchMethod(req)(
       delete = for {
-        idStr <- req.getRequiredParam("id")
-        id <- parseId(idStr)
+        idStr   <- req.getRequiredParam("id")
+        id      <- parseId(idStr)
         deleted <- delete(id)
-        result <- if (deleted) ok("Deleted successfully") else notFound("Entity not found")
+        result  <- if (deleted) ok("Deleted successfully") else notFound("Entity not found")
       } yield result
     )
   }

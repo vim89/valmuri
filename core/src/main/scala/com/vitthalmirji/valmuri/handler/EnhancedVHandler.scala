@@ -1,6 +1,6 @@
 package com.vitthalmirji.valmuri.handler
 
-import com.sun.net.httpserver.{HttpExchange, HttpHandler}
+import com.sun.net.httpserver.{ HttpExchange, HttpHandler }
 import com.vitthalmirji.valmuri._
 import com.vitthalmirji.valmuri.error.FrameworkError
 
@@ -28,7 +28,7 @@ class EnhancedVHandler(route: VRoute) extends HttpHandler {
   }
 
   private def extractRequest(exchange: HttpExchange): VRequest = {
-    val uri = exchange.getRequestURI
+    val uri    = exchange.getRequestURI
     val method = HttpMethod.fromString(exchange.getRequestMethod)
 
     // Extract headers using pattern matching and partial functions
@@ -55,34 +55,34 @@ class EnhancedVHandler(route: VRoute) extends HttpHandler {
     exchange.getRequestHeaders.asScala.view.mapValues(_.asScala.headOption.getOrElse("")).toMap
   }
 
-  private def extractBody(exchange: HttpExchange, method: HttpMethod): Option[String] = {
+  private def extractBody(exchange: HttpExchange, method: HttpMethod): Option[String] =
     method match {
       case m if m == HttpMethod.POST || m == HttpMethod.PUT || m == HttpMethod.PATCH =>
         Try {
           val inputStream = exchange.getRequestBody
-          val body = scala.io.Source.fromInputStream(inputStream).mkString
+          val body        = scala.io.Source.fromInputStream(inputStream).mkString
           inputStream.close()
           if (body.nonEmpty) Some(body) else None
         }.getOrElse(None)
       case _ => None
     }
-  }
 
-  private def extractParams(uri: java.net.URI): Map[String, String] = {
+  private def extractParams(uri: java.net.URI): Map[String, String] =
     Option(uri.getQuery).fold(Map.empty[String, String]) { query =>
-      query.split("&").flatMap { param =>
-        param.split("=", 2) match {
-          case Array(key, value) => Some(key -> java.net.URLDecoder.decode(value, "UTF-8"))
-          case Array(key) => Some(key -> "")
-          case _ => None
+      query
+        .split("&")
+        .flatMap { param =>
+          param.split("=", 2) match {
+            case Array(key, value) => Some(key -> java.net.URLDecoder.decode(value, "UTF-8"))
+            case Array(key)        => Some(key -> "")
+            case _                 => None
+          }
         }
-      }.toMap
+        .toMap
     }
-  }
 
-  private def sendSuccessResponse(exchange: HttpExchange, content: String): Unit = {
+  private def sendSuccessResponse(exchange: HttpExchange, content: String): Unit =
     sendResponse(exchange, 200, content, getContentType(content))
-  }
 
   private def sendErrorResponse(exchange: HttpExchange, error: FrameworkError): Unit = {
     val (statusCode, content) = error match {
@@ -125,19 +125,17 @@ class EnhancedVHandler(route: VRoute) extends HttpHandler {
     val _ = () // Explicitly discard the Try result to avoid -Wvalue-discard warning
   }
 
-  private def getContentType(content: String): String = {
+  private def getContentType(content: String): String =
     content.trim match {
       case json if json.startsWith("{") || json.startsWith("[") => "application/json"
-      case html if html.startsWith("<") => "text/html"
-      case _ => "text/plain"
+      case html if html.startsWith("<")                         => "text/html"
+      case _                                                    => "text/plain"
     }
-  }
 
-  private def createErrorJson(error: FrameworkError): String = {
+  private def createErrorJson(error: FrameworkError): String =
     s"""{
       "error": "${error.code}",
       "message": "${error.message}",
       "timestamp": "${java.time.Instant.now()}"
     }"""
-  }
 }

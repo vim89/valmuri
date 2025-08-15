@@ -1,6 +1,6 @@
 package hello
 
-import com.vitthalmirji.valmuri.{VApplication, VRoute}
+import com.vitthalmirji.valmuri.{ VApplication, VRoute }
 import com.vitthalmirji.valmuri.VResult
 
 object HelloApp extends VApplication {
@@ -12,7 +12,6 @@ object HelloApp extends VApplication {
 }
 
 object Main {
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     println(HelloApp.start())
-  }
 }

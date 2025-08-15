@@ -2,15 +2,16 @@ package com.vitthalmirji.valmuri.encoder
 
 object JsonEncoder {
   // Basic JSON encoders
-  implicit val stringJsonEncoder: JsonEncoder[String] = (value: String) => s""""$value""""
-  implicit val intJsonEncoder: JsonEncoder[Int] = (value: Int) => value.toString
+  implicit val stringJsonEncoder: JsonEncoder[String]   = (value: String) => s""""$value""""
+  implicit val intJsonEncoder: JsonEncoder[Int]         = (value: Int) => value.toString
   implicit val booleanJsonEncoder: JsonEncoder[Boolean] = (value: Boolean) => value.toString
 
   // Case class JSON encoder (simplified - real implementation would use reflection)
   implicit def caseClassJsonEncoder[A <: Product]: JsonEncoder[A] = (value: A) => {
-    val fields = value.productElementNames.zip(value.productIterator).map {
-      case (name, elem) => s""""$name": ${jsonValue(elem)}"""
-    }.mkString(", ")
+    val fields = value.productElementNames
+      .zip(value.productIterator)
+      .map { case (name, elem) => s""""$name": ${jsonValue(elem)}""" }
+      .mkString(", ")
     s"{$fields}"
   }
 
@@ -23,16 +24,16 @@ object JsonEncoder {
   // Option JSON encoder
   implicit def optionJsonEncoder[A: JsonEncoder]: JsonEncoder[Option[A]] = {
     case Some(value) => implicitly[JsonEncoder[A]].toJson(value)
-    case None => "null"
+    case None        => "null"
   }
 
   // Helper for encoding any value to JSON string
   private def jsonValue(value: Any): String = value match {
-    case s: String => s""""$s""""
-    case i: Int => i.toString
+    case s: String  => s""""$s""""
+    case i: Int     => i.toString
     case b: Boolean => b.toString
-    case null => "null"
-    case other => s""""${other.toString}""""
+    case null       => "null"
+    case other      => s""""${other.toString}""""
   }
 }
 

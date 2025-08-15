@@ -2,20 +2,24 @@ package com.vitthalmirji.valmuri
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
-import scala.util.{Try, Success, Failure}
+import scala.reflect.runtime.universe.Try
 
 /**
- * Enhanced dependency injection - Fixed for compilation
+ * Lightweight dependency injection container
  */
 class VServices {
-  private val services = mutable.Map[Class[_], Any]()
-
-  // Type alias for service factories
-  type ServiceFactory[T] = () => T
+  private val services  = mutable.Map[Class[_], Any]()
+  private val factories = mutable.Map[Class[_], () => Any]()
 
   /**
-   * Register a service instance with type safety
+   * Register a service instance
    */
+  def register[T: ClassTag](service: T): VResult[Unit] = {
+    val clazz = implicitly[ClassTag[T]].runtimeClass
+    services(clazz) = service
+    VResult.success(())
+  }
+
   def register[T](service: T)(implicit classTag: ClassTag[T]): VResult[Unit] = {
     VResult.fromTry(Try {
       val clazz = classTag.runtimeClass
@@ -24,9 +28,39 @@ class VServices {
     })
   }
 
+
   /**
-   * Get service with pattern matching and error handling
+   * Register a service factory (lazy instantiation)
    */
+  def registerFactory[T: ClassTag](factory: => T): VResult[Unit] = {
+    val clazz = implicitly[ClassTag[T]].runtimeClass
+    factories(clazz) = () => factory
+    VResult.success(())
+  }
+
+  /**
+   * Get a service (creates from factory if needed)
+   */
+  def get[T: ClassTag]: T = {
+    val clazz = implicitly[ClassTag[T]].runtimeClass
+
+    services.get(clazz) match {
+      case Some(service) =>
+        service.asInstanceOf[T]
+
+      case None =>
+        factories.get(clazz) match {
+          case Some(factory) =>
+            val service = factory().asInstanceOf[T]
+            services(clazz) = service
+            service
+
+          case None =>
+            throw new RuntimeException(s"Service not found: ${clazz.getSimpleName}")
+        }
+    }
+  }
+
   def get[T](implicit classTag: ClassTag[T]): T = {
     val clazz = classTag.runtimeClass
     services.get(clazz) match {
@@ -38,80 +72,48 @@ class VServices {
   /**
    * Safe get with VResult
    */
+  def getSafe[T: ClassTag]: VResult[T] =
+    VResult.fromTry(scala.util.Try(get[T]))
+
   def getSafe[T](implicit classTag: ClassTag[T]): VResult[T] = {
     VResult.fromTry(Try(get[T]))
   }
 
   /**
-   * Get optional service (returns Option)
+   * Check if service exists
    */
-  def getOption[T](implicit classTag: ClassTag[T]): Option[T] = {
-    Try(get[T]).toOption
+  def contains[T: ClassTag]: Boolean = {
+    val clazz = implicitly[ClassTag[T]].runtimeClass
+    services.contains(clazz) || factories.contains(clazz)
   }
 
   /**
-   * Enhanced auto-wiring with better error handling
+   * Simple auto-wiring (constructor injection)
    */
-  def autowire[T](implicit classTag: ClassTag[T]): T = {
-    val clazz = classTag.runtimeClass
+  def autowire[T: ClassTag]: VResult[T] = {
+    val clazz = implicitly[ClassTag[T]].runtimeClass
 
-    clazz.getConstructors.headOption match {
-      case Some(constructor) =>
-        val paramTypes = constructor.getParameterTypes
-
-        if (paramTypes.isEmpty) {
-          constructor.newInstance().asInstanceOf[T]
-        } else {
-          autowireDependencies(constructor, paramTypes) match {
-            case Right(instance) => instance.asInstanceOf[T]
-            case Left(error) => throw error
-          }
-        }
-      case None =>
+    VResult.fromTry(scala.util.Try {
+      val constructor = clazz.getConstructors.headOption.getOrElse(
         throw new RuntimeException(s"No constructor found for ${clazz.getSimpleName}")
-    }
-  }
+      )
 
-  /**
-   * Auto-wire dependencies using Either for error handling
-   */
-  private def autowireDependencies(
-                                    constructor: java.lang.reflect.Constructor[_],
-                                    paramTypes: Array[Class[_]]
-                                  ): Either[RuntimeException, Any] = {
-    Try {
-      val params = paramTypes.map { paramType =>
-        services.get(paramType) match {
-          case Some(service) => service
-          case None =>
-            throw new RuntimeException(
-              s"Cannot autowire: missing dependency ${paramType.getSimpleName}"
-            )
+      val paramTypes = constructor.getParameterTypes
+
+      if (paramTypes.isEmpty) {
+        constructor.newInstance().asInstanceOf[T]
+      } else {
+        val params = paramTypes.map { paramType =>
+          services.getOrElse(paramType, throw new RuntimeException(s"Dependency not found: ${paramType.getSimpleName}"))
         }
+        constructor.newInstance(params: _*).asInstanceOf[T]
       }
-      constructor.newInstance(params: _*)
-    } match {
-      case Success(instance) => Right(instance)
-      case Failure(ex) => Left(new RuntimeException(ex.getMessage, ex))
-    }
+    })
   }
 
   /**
-   * Check if service is registered
+   * List all registered services
    */
-  def contains[T](implicit classTag: ClassTag[T]): Boolean = {
-    services.contains(classTag.runtimeClass)
-  }
-
-  /**
-   * Get service count
-   */
-  def serviceCount: Int = services.size
-
-  /**
-   * List all registered service types
-   */
-  def listServices: List[String] = {
-    services.keys.map(_.getSimpleName).toList.sorted
-  }
+  def listServices(): List[String] =
+    (services.keys ++ factories.keys).map(_.getSimpleName).toList.sorted
 }

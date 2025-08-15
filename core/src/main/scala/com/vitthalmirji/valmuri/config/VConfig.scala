@@ -1,105 +1,159 @@
 package com.vitthalmirji.valmuri.config
 
 import java.util.Properties
-import scala.util.Try
+import java.io.{ File, FileInputStream }
+import scala.jdk.CollectionConverters.DictionaryHasAsScala
+import scala.util.{ Try, Using }
 
+/**
+ * Application configuration
+ */
 case class VConfig(
-                    serverPort: Int = 8080,
-                    serverHost: String = "localhost",
-                    databaseUrl: String = "jdbc:sqlite:./valmuri.db",
-                    actuatorEnabled: Boolean = true,
-                    appName: String = "Valmuri Application",
-                    appVersion: String = "0.1.0",
-                    custom: Map[String, String] = Map.empty
-                  )
+  // Application
+  appName: String = "Valmuri Application",
+  appVersion: String = "0.1.0",
+  profile: String = "development",
+
+  // Server
+  serverHost: String = "localhost",
+  serverPort: Int = 8080,
+  serverThreads: Int = Runtime.getRuntime.availableProcessors() * 2,
+  serverBacklog: Int = 100,
+  serverShutdownDelay: Int = 5,
+  maxRequestSize: Int = 10 * 1024 * 1024, // 10MB
+
+  // Features
+  actuatorEnabled: Boolean = true,
+  corsEnabled: Boolean = true,
+  corsOrigin: String = "*",
+
+  // Paths
+  staticDir: Option[String] = None,
+  templateDir: Option[String] = None,
+  uploadDir: Option[String] = Some("uploads"),
+
+  // Database (future)
+  databaseUrl: Option[String] = None,
+  databaseDriver: Option[String] = None,
+  databaseUsername: Option[String] = None,
+  databasePassword: Option[String] = None,
+
+  // Custom properties
+  custom: Map[String, String] = Map.empty
+)
 
 object VConfig {
-  def load(args: Array[String] = Array.empty, profile: String = ""): VConfig = {
-    println("📋 Loading Valmuri configuration...")
 
+  def load(): VConfig = {
+    val profile = sys.env.getOrElse("VALMURI_ENV", sys.props.getOrElse("valmuri.env", "development"))
+
+    println(s"📋 Loading configuration for profile: $profile")
+
+    // Load properties in order of precedence
     val props = new Properties()
 
-    // Load application.properties
-    loadPropertiesFile("application.properties", props)
+    // 1. Load default properties
+    loadResource("application.properties", props)
 
-    // Load profile-specific properties
-    val activeProfile = getActiveProfile(args, profile)
-    if (activeProfile.nonEmpty) {
-      loadPropertiesFile(s"application-$activeProfile.properties", props)
-      println(s"🌍 Active profile: $activeProfile")
+    // 2. Load profile-specific properties
+    loadResource(s"application-$profile.properties", props)
+
+    // 3. Load external config file if exists
+    loadFile("application.properties", props)
+    loadFile(s"application-$profile.properties", props)
+
+    // 4. Override with environment variables
+    loadEnvironment(props)
+
+    // 5. Override with system properties
+    loadSystemProperties(props)
+
+    // Build config
+    buildConfig(props, profile)
+  }
+
+  private def loadResource(name: String, props: Properties): Unit =
+    Option(getClass.getClassLoader.getResourceAsStream(name)).foreach { stream =>
+      Using.resource(stream) { s =>
+        props.load(s)
+        println(s"  ✓ Loaded resource: $name")
+      }
     }
 
-    // Override with environment variables
-    loadEnvironmentVariables(props)
-
-    // Override with command line arguments
-    loadCommandLineArgs(args, props)
-
-    val config = buildConfig(props)
-    println(s"✅ Configuration loaded: ${config.appName} on ${config.serverHost}:${config.serverPort}")
-    config
-  }
-
-  private def getActiveProfile(args: Array[String], defaultProfile: String): String = {
-    args.sliding(2).collectFirst {
-      case Array("--profile", profile) => profile
-    }.orElse {
-      Option(System.getenv("VALMURI_PROFILE"))
-    }.getOrElse(defaultProfile)
-  }
-
-  private def loadPropertiesFile(filename: String, props: Properties): Unit = {
-    Option(getClass.getClassLoader.getResourceAsStream(filename)) match {
-      case Some(stream) =>
+  private def loadFile(name: String, props: Properties): Unit = {
+    val file = new File(name)
+    if (file.exists()) {
+      Using.resource(new FileInputStream(file)) { stream =>
         props.load(stream)
-        stream.close()
-        println(s"📄 Loaded: $filename")
-      case None => // File not found, skip
-    }
-  }
-
-  private def loadEnvironmentVariables(props: Properties): Unit = {
-    val envMappings = Map(
-      "VALMURI_PORT" -> "server.port",
-      "VALMURI_HOST" -> "server.host",
-      "DATABASE_URL" -> "database.url"
-    )
-
-    envMappings.foreach { case (envVar, propKey) =>
-      Option(System.getenv(envVar)) match {
-        case Some(value) =>
-          props.setProperty(propKey, value)
-          println(s"🌐 Environment override: $envVar")
-        case None => // No override
+        println(s"  ✓ Loaded file: $name")
       }
     }
   }
 
-  private def loadCommandLineArgs(args: Array[String], props: Properties): Unit = {
-    args.sliding(2).foreach {
-      case Array(key, value) if key.startsWith("--") =>
-        props.setProperty(key.substring(2), value)
-        println(s"⚡ Command line: $key = $value")
-      case _ => // Skip invalid args
+  private def loadEnvironment(props: Properties): Unit = {
+    val envMappings = Map(
+      "VALMURI_HOST" -> "server.host",
+      "VALMURI_PORT" -> "server.port",
+      "PORT"         -> "server.port", // Heroku compatibility
+      "DATABASE_URL" -> "database.url"
+    )
+
+    envMappings.foreach { case (env, prop) =>
+      sys.env.get(env).foreach { value =>
+        props.setProperty(prop, value)
+        println(s"  ✓ Environment override: $env")
+      }
     }
   }
 
-  private def buildConfig(props: Properties): VConfig = {
-    def getProperty(key: String, default: String): String = props.getProperty(key, default)
+  private def loadSystemProperties(props: Properties): Unit =
+    sys.props.foreach { case (key, value) =>
+      if (key.startsWith("valmuri.")) {
+        val propKey = key.substring(8).replace("-", ".")
+        props.setProperty(propKey, value)
+        println(s"  ✓ System property: $key")
+      }
+    }
 
-    def getIntProperty(key: String, default: Int): Int =
+  private def buildConfig(props: Properties, profile: String): VConfig = {
+    def get(key: String, default: String): String =
+      props.getProperty(key, default)
+
+    def getInt(key: String, default: Int): Int =
       Try(props.getProperty(key, default.toString).toInt).getOrElse(default)
 
-    def getBooleanProperty(key: String, default: Boolean): Boolean =
+    def getBoolean(key: String, default: Boolean): Boolean =
       Try(props.getProperty(key, default.toString).toBoolean).getOrElse(default)
 
+    def getOption(key: String): Option[String] =
+      Option(props.getProperty(key)).filter(_.nonEmpty)
+
     VConfig(
-      serverPort = getIntProperty("server.port", 8080),
-      serverHost = getProperty("server.host", "localhost"),
-      databaseUrl = getProperty("database.url", "jdbc:sqlite:./valmuri.db"),
-      actuatorEnabled = getBooleanProperty("actuator.enabled", default = true),
-      appName = getProperty("app.name", "Valmuri Application"),
-      appVersion = getProperty("app.version", "0.1.0")
+      appName = get("app.name", "Valmuri Application"),
+      appVersion = get("app.version", "0.1.0"),
+      profile = profile,
+      serverHost = get("server.host", "localhost"),
+      serverPort = getInt("server.port", 8080),
+      serverThreads = getInt("server.threads", Runtime.getRuntime.availableProcessors() * 2),
+      serverBacklog = getInt("server.backlog", 100),
+      serverShutdownDelay = getInt("server.shutdown.delay", 5),
+      maxRequestSize = getInt("server.max.request.size", 10 * 1024 * 1024),
+      actuatorEnabled = getBoolean("actuator.enabled", true),
+      corsEnabled = getBoolean("cors.enabled", true),
+      corsOrigin = get("cors.origin", "*"),
+      staticDir = getOption("static.dir"),
+      templateDir = getOption("template.dir"),
+      uploadDir = getOption("upload.dir"),
+      databaseUrl = getOption("database.url"),
+      databaseDriver = getOption("database.driver"),
+      databaseUsername = getOption("database.username"),
+      databasePassword = getOption("database.password"),
+      custom = props.asScala
+        .map { case (k, v) =>
+          k.toString -> v.toString
+        }
+        .toMap
+        .filter(_._1.startsWith("custom."))
     )
   }
 }

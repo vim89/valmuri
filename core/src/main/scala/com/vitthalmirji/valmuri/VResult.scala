@@ -1,97 +1,105 @@
 package com.vitthalmirji.valmuri
 
 import com.vitthalmirji.valmuri.error.FrameworkError
-
-import scala.concurrent.Future
+import scala.concurrent.{ Future, ExecutionContext, Await }
 import scala.concurrent.duration.Duration
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 
 /**
- * Functional Result type - Like Either but more expressive
+ * Monadic result type for error handling
  */
-sealed trait VResult[+A] {
+sealed trait VResult[+A] { self =>
 
-  // Functor: map over successful values
-  def map[B](f: A => B): VResult[B] = this match {
-    case VResult.Success(value) => VResult.Success(f(value))
-    case failure: VResult.Failure => failure
+  def map[B](f: A => B): VResult[B] = self match {
+    case VResult.Success(value)   => VResult.Success(f(value))
+    case err @ VResult.Failure(_) => err
   }
 
-  // Monad: flatMap for chaining computations
-  def flatMap[B](f: A => VResult[B]): VResult[B] = this match {
-    case VResult.Success(value) => f(value)
-    case failure: VResult.Failure => failure
+  def flatMap[B](f: A => VResult[B]): VResult[B] = self match {
+    case VResult.Success(value)   => f(value)
+    case err @ VResult.Failure(_) => err
   }
 
-  // Error recovery with partial function
-  def recoverWith[B >: A](pf: PartialFunction[FrameworkError, VResult[B]]): VResult[B] = this match {
-    case failure @ VResult.Failure(error) =>
-      if (pf.isDefinedAt(error)) pf(error) else failure
-    case success => success
+  def recover[B >: A](f: PartialFunction[FrameworkError, B]): VResult[B] = self match {
+    case VResult.Success(value)                         => VResult.Success(value)
+    case VResult.Failure(error) if f.isDefinedAt(error) => VResult.Success(f(error))
+    case err @ VResult.Failure(_)                       => err
   }
 
-  // Extract value or throw
-  def get: A = this match {
+  def recoverWith[B >: A](f: PartialFunction[FrameworkError, VResult[B]]): VResult[B] = self match {
+    case VResult.Success(value)                         => VResult.Success(value)
+    case VResult.Failure(error) if f.isDefinedAt(error) => f(error)
+    case err @ VResult.Failure(_)                       => err
+  }
+
+  def getOrElse[B >: A](default: => B): B = self match {
     case VResult.Success(value) => value
-    case VResult.Failure(error) => throw new RuntimeException(error.message)
+    case VResult.Failure(_)     => default
   }
 
-  // Extract value or default
-  def getOrElse[B >: A](default: => B): B = this match {
-    case VResult.Success(value) => value
-    case VResult.Failure(_) => default
+  def orElse[B >: A](alternative: => VResult[B]): VResult[B] = self match {
+    case success @ VResult.Success(_) => success
+    case VResult.Failure(_)           => alternative
   }
 
-  // Transform errors
-  def mapError(f: FrameworkError => FrameworkError): VResult[A] = this match {
-    case success: VResult.Success[A] => success
-    case VResult.Failure(error) => VResult.Failure(f(error))
+  def fold[B](onFailure: FrameworkError => B)(onSuccess: A => B): B = self match {
+    case VResult.Success(value) => onSuccess(value)
+    case VResult.Failure(error) => onFailure(error)
   }
 
-  // Check if successful
-  def isSuccess: Boolean = this match {
-    case _: VResult.Success[_] => true
-    case _: VResult.Failure => false
-  }
-
+  def isSuccess: Boolean = self.isInstanceOf[VResult.Success[_]]
   def isFailure: Boolean = !isSuccess
+
+  def toOption: Option[A] = self match {
+    case VResult.Success(value) => Some(value)
+    case VResult.Failure(_)     => None
+  }
+
+  def toEither: Either[FrameworkError, A] = self match {
+    case VResult.Success(value) => Right(value)
+    case VResult.Failure(error) => Left(error)
+  }
+
+  def toTry: Try[A] = self match {
+    case VResult.Success(value) => Success(value)
+    case VResult.Failure(error) => Failure(new RuntimeException(error.message))
+  }
 }
 
 object VResult {
-  final case class Success[+A](value: A) extends VResult[A]
+  final case class Success[+A](value: A)          extends VResult[A]
   final case class Failure(error: FrameworkError) extends VResult[Nothing]
 
-  // Smart constructors
-  def success[A](value: A): VResult[A] = Success(value)
+  // Constructors
+  def success[A](value: A): VResult[A]              = Success(value)
   def failure[A](error: FrameworkError): VResult[A] = Failure(error)
 
-  // From Try
+  // From other types
   def fromTry[A](t: Try[A]): VResult[A] = t match {
-    case scala.util.Success(value) => success(value)
-    case scala.util.Failure(ex) => failure(FrameworkError.UnexpectedError(ex.getMessage))
+    case scala.util.Success(value) => Success(value)
+    case scala.util.Failure(ex)    => Failure(FrameworkError.UnexpectedError(ex.getMessage))
   }
 
-  // From Future (for async operations) - Fixed timeout handling
-  def fromFuture[A](future: Future[A], timeout: Duration = Duration.Inf): VResult[A] = {
-    scala.util.Try {
-      scala.concurrent.Await.result(future, timeout)
-    } match {
-      case scala.util.Success(value) => success(value)
-      case scala.util.Failure(ex) => failure(FrameworkError.UnexpectedError(ex.getMessage))
-    }
-  }
-
-  // From Option
   def fromOption[A](opt: Option[A], error: => FrameworkError): VResult[A] =
-    opt.fold(failure[A](error))(success)
+    opt.fold[VResult[A]](Failure(error))(Success(_))
 
-  // Traverse a list of results - Fixed for better performance
-  def sequence[A](results: List[VResult[A]]): VResult[List[A]] = {
-    results.foldRight(success(List.empty[A])) { (result, acc) =>
+  def fromEither[A](either: Either[FrameworkError, A]): VResult[A] = either match {
+    case Right(value) => Success(value)
+    case Left(error)  => Failure(error)
+  }
+
+  def fromFuture[A](future: Future[A], timeout: Duration = Duration.Inf)(implicit ec: ExecutionContext): VResult[A] =
+    fromTry(Try(Await.result(future, timeout)))
+
+  // Sequence operations
+  def sequence[A](results: List[VResult[A]]): VResult[List[A]] =
+    results.foldRight[VResult[List[A]]](Success(Nil)) { (result, acc) =>
       for {
         value <- result
-        list <- acc
+        list  <- acc
       } yield value :: list
     }
-  }
+
+  def traverse[A, B](list: List[A])(f: A => VResult[B]): VResult[List[B]] =
+    sequence(list.map(f))
 }

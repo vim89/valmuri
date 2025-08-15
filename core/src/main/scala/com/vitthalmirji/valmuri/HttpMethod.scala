@@ -15,13 +15,13 @@ object HttpMethod {
 
   // Pattern matching factory
   def fromString(method: String): HttpMethod = method.toUpperCase match {
-    case "GET" => GET
-    case "POST" => POST
-    case "PUT" => PUT
-    case "DELETE" => DELETE
-    case "PATCH" => PATCH
+    case "GET"     => GET
+    case "POST"    => POST
+    case "PUT"     => PUT
+    case "DELETE"  => DELETE
+    case "PATCH"   => PATCH
     case "OPTIONS" => OPTIONS
-    case _ => GET // Default fallback
+    case _         => GET // Default fallback
   }
 }
 

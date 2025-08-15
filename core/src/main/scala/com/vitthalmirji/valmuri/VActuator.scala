@@ -10,10 +10,10 @@ class VActuator {
   private val startTime = Instant.now()
 
   def healthEndpoint(): String = {
-    val uptime = java.time.Duration.between(startTime, Instant.now())
-    val memory = ManagementFactory.getMemoryMXBean
+    val uptime   = java.time.Duration.between(startTime, Instant.now())
+    val memory   = ManagementFactory.getMemoryMXBean
     val heapUsed = memory.getHeapMemoryUsage.getUsed / (1024 * 1024)
-    val heapMax = memory.getHeapMemoryUsage.getMax / (1024 * 1024)
+    val heapMax  = memory.getHeapMemoryUsage.getMax / (1024 * 1024)
 
     s"""{
       "status": "UP",
@@ -30,7 +30,7 @@ class VActuator {
 
   def metricsEndpoint(): String = {
     val runtime = ManagementFactory.getRuntimeMXBean
-    val memory = ManagementFactory.getMemoryMXBean
+    val memory  = ManagementFactory.getMemoryMXBean
 
     s"""{
       "jvm": {
@@ -43,7 +43,7 @@ class VActuator {
     }"""
   }
 
-  def infoEndpoint(): String = {
+  def infoEndpoint(): String =
     s"""{
       "app": {
         "name": "Valmuri Application",
@@ -55,5 +55,4 @@ class VActuator {
         "scala": "2.13.12"
       }
     }"""
-  }
 }

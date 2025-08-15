@@ -1,135 +1,129 @@
 package com.vitthalmirji.valmuri
 
-import com.vitthalmirji.valmuri.config.{VAutoConfig, VConfig}
-import com.vitthalmirji.valmuri.error.FrameworkError
-import com.vitthalmirji.valmuri.error.FrameworkError.{ConfigError, ServiceError}
+import com.vitthalmirji.valmuri.config.{ VAutoConfig, VConfig }
 
 import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
- * Core framework trait - Fixed for cross-compilation
+ * Core framework trait - Production ready
  */
 trait VApplication {
 
-  // Type aliases for better readability
-  type ServiceContainer = VServices
-  type AppConfiguration = VConfig
-  type RouteHandler = VRequest => VResult[String]
-  type ControllerList = List[VController]
+  // Lazy initialization for better startup performance
+  private lazy val services: VServices     = new VServices()
+  private lazy val config: VConfig         = loadConfiguration()
+  private lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
 
-  // Service registry - framework manages this (lazy initialization)
-  private[valmuri] lazy val services: ServiceContainer = new VServices()
-
-  // Configuration - loaded lazily like Spring Boot
-  private[valmuri] lazy val config: AppConfiguration = loadConfiguration()
-
-  // Auto-configuration - happens lazily and safely
-  private[valmuri] lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
-
-  // Override these for custom configuration
-  def configurationArgs(): Array[String] = Array.empty
-  def configurationProfile(): String = ""
-
-  // Register additional services (optional) - returns VResult for error handling
-  def configure(): VResult[Unit] = VResult.success(())
-
-  // Simple routing - can be routes OR controllers (covariant return type)
+  // User overrides
   def routes(): List[VRoute] = List.empty
 
-  // Auto-wire controllers (optional) - with error handling
-  def controllers(): VResult[ControllerList] = VResult.success(List.empty)
+  def configure(): VResult[Unit] = VResult.success(())
 
-  /**
-   * SPRING BOOT STYLE STARTUP - Everything auto-configured with error handling!
-   */
+  // Main entry point
   final def start(): VResult[Unit] = {
+    val startTime = System.currentTimeMillis()
+
     for {
-      _ <- VResult.fromTry(Try {
-        println(s"🚀 Starting ${config.appName} v${config.appVersion}")
-      })
-      _ <- autoConfigureComponents()
-      _ <- configure()
-      allRoutes <- buildRoutes()
-      finalRoutes <- addActuatorRoutes(allRoutes)
-      server <- startServer(finalRoutes)
-      _ <- VResult.fromTry(Try {
-        println(s"✅ ${config.appName} running at http://${config.serverHost}:${config.serverPort}")
-        if (config.actuatorEnabled) {
-          println(s"📊 Actuator: http://${config.serverHost}:${config.serverPort}/actuator/health")
-        }
-        Thread.currentThread().join()
-      })
+      _      <- printBanner()
+      _      <- initializeFramework()
+      _      <- configure()
+      routes <- buildAllRoutes()
+      server <- startServer(routes)
+      _      <- printStartupInfo(System.currentTimeMillis() - startTime)
     } yield ()
   }
 
-  // Pattern matching for safe auto-configuration
-  private def autoConfigureComponents(): VResult[Unit] = {
-    VResult.fromTry(Try(autoConfig.configure())).recoverWith {
-      case _: ConfigError => VResult.failure(FrameworkError.ConfigError("Configuration failed"))
-      case _: ServiceError => VResult.failure(FrameworkError.ServiceError("Service error"))
-      case ex => VResult.failure(FrameworkError.UnexpectedError(ex.message))
-    }
+  private def printBanner(): VResult[Unit] = VResult.success {
+    println("""
+        |╦  ╦┌─┐┬  ┌┬┐┬ ┬┬─┐┬
+        |╚╗╔╝├─┤│  ││││ │├┬┘│
+        | ╚╝ ┴ ┴┴─┘┴ ┴└─┘┴└─┴
+        |Full-stack scala framework v0.1.0
+    """.stripMargin)
   }
 
-  private def loadConfiguration(): AppConfiguration = {
-    VConfig.load(configurationArgs(), configurationProfile())
-  }
+  private def initializeFramework(): VResult[Unit] =
+    VResult.fromTry(Try {
+      autoConfig.configure()
+      println(s"✅ Framework initialized with profile: ${config.profile}")
+    })
 
-  // Enhanced route building with error handling and pattern matching
-  private def buildRoutes(): VResult[List[VRoute]] = {
+  private def buildAllRoutes(): VResult[List[VRoute]] =
     for {
-      directRoutes <- VResult.success(routes())
-      controllerList <- controllers()
-      controllerRoutes <- extractControllerRoutes(controllerList)
-    } yield directRoutes ++ controllerRoutes
-  }
+      userRoutes     <- VResult.success(routes())
+      staticRoutes   <- buildStaticRoutes()
+      actuatorRoutes <- buildActuatorRoutes()
+    } yield userRoutes ++ staticRoutes ++ actuatorRoutes
 
-  // Pattern matching for controller route extraction
-  private def extractControllerRoutes(controllers: ControllerList): VResult[List[VRoute]] = {
-    VResult.fromTry(Try {
-      controllers.flatMap { controller =>
-        if (controller != null) controller.routes() else List.empty[VRoute]
-      }
-    })
-  }
-
-  // Conditional actuator route addition using pattern matching
-  private def addActuatorRoutes(routes: List[VRoute]): VResult[List[VRoute]] = {
-    if (config.actuatorEnabled) {
-      buildActuatorRoutes().map(actuatorRoutes => routes ++ actuatorRoutes)
-    } else {
-      VResult.success(routes)
-    }
-  }
-
-  private def buildActuatorRoutes(): VResult[List[VRoute]] = {
-    VResult.fromTry(Try {
-      val actuator = services.get[VActuator]
-      List(
-        VRoute("/actuator/health", _ => VResult.success(actuator.healthEndpoint())),
-        VRoute("/actuator/metrics", _ => VResult.success(actuator.metricsEndpoint())),
-        VRoute("/actuator/info", _ => VResult.success(actuator.infoEndpoint())),
-        VRoute("/health", _ => VResult.success(actuator.healthEndpoint()))
+  private def buildStaticRoutes(): VResult[List[VRoute]] =
+    if (config.staticDir.isDefined) {
+      VResult.success(
+        List(
+          VRoute.static("/static/*", config.staticDir.get)
+        )
       )
-    })
-  }
+    } else {
+      VResult.success(List.empty)
+    }
+
+  private def buildActuatorRoutes(): VResult[List[VRoute]] =
+    if (config.actuatorEnabled) {
+      VResult.success(
+        List(
+          VRoute("/actuator/health", _ => VResult.success(healthCheck())),
+          VRoute("/actuator/metrics", _ => VResult.success(metrics())),
+          VRoute("/actuator/info", _ => VResult.success(info()))
+        )
+      )
+    } else {
+      VResult.success(List.empty)
+    }
 
   private def startServer(routes: List[VRoute]): VResult[VServer] = {
-    VResult.fromTry(Try {
-      val server = new VServer(config.serverHost, config.serverPort, routes)
-      server.start() match {
-        case VResult.Success(_) => server
-        case VResult.Failure(error) => throw new RuntimeException(error.message)
-      }
-    })
+    val server = new VServer(config)
+    server.start(routes).map(_ => server)
   }
 
-  // Helper for users who want to use services in simple routes (with error handling)
-  protected def service[T](implicit classTag: ClassTag[T]): VResult[T] = {
-    VResult.fromTry(Try(services.get[T]))
+  private def printStartupInfo(startupTime: Long): VResult[Unit] = VResult.success {
+    println(s"""
+         |✅ ${config.appName} started in ${startupTime}ms
+         |🌐 Server: http://${config.serverHost}:${config.serverPort}
+         |📊 Health: http://${config.serverHost}:${config.serverPort}/actuator/health
+         |🚀 Environment: ${config.profile}
+    """.stripMargin)
   }
 
-  // Helper to access configuration
-  protected def getConfig: AppConfiguration = config
+  private def loadConfiguration(): VConfig =
+    VConfig.load()
+
+  // Health check endpoint
+  private def healthCheck(): String =
+    s"""{"status":"UP","timestamp":"${java.time.Instant.now()}"}"""
+
+  // Metrics endpoint
+  private def metrics(): String = {
+    val runtime = Runtime.getRuntime
+    s"""{
+      "memory": {
+        "used": ${(runtime.totalMemory() - runtime.freeMemory()) / 1048576},
+        "total": ${runtime.totalMemory() / 1048576},
+        "max": ${runtime.maxMemory() / 1048576}
+      },
+      "processors": ${runtime.availableProcessors()}
+    }"""
+  }
+
+  // Info endpoint
+  private def info(): String =
+    s"""{
+      "app": "${config.appName}",
+      "version": "${config.appVersion}",
+      "framework": "Valmuri 0.1.0"
+    }"""
+
+  // Helper methods for users
+  protected def service[T: ClassTag]: T = services.get[T]
+
+  protected def getConfig: VConfig = config
 }
