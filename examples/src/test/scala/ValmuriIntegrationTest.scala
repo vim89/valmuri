@@ -9,7 +9,7 @@ import scala.util.Random
 
 class ValmuriIntegrationTest extends FunSuite {
 
-  private val isCI = sys.env.get("CI").contains("true")
+  override val isCI: Boolean = sys.env.get("CI").contains("true")
 
   test("30-minute deployment script should work") {
     // Skip in CI environment
