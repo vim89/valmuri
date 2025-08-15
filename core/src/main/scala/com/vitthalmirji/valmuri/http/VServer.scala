@@ -42,17 +42,38 @@ class VServer(config: VConfig) {
       // Configure server
       httpServer.setExecutor(threadPool)
 
-      // Register routes
-      routes.foreach { route =>
+      // Register (literal) specific routes first, in descending path length—this ensures longest prefix matches
+      val specificRoutes = routes.filterNot(_.path.endsWith("/*")).sortBy(_.path.length)(Ordering[Int].reverse)
+      specificRoutes.foreach { route =>
         routeRegistry(route.path) = route
-        serverCreateContext(route.path, server, new VHttpHandler(route, config))
+        println(s"[valmuri] Registering specific route: ${route.path}")
+        serverCreateContext(route.path, Some(httpServer), new VHttpHandler(route, config))
       }
 
-      // Add default handler for 404
-      serverCreateContext("/", server, new DefaultHandler(routeRegistry.values.toList))
+      // For routes ending in '/*', register them as prefix routes without the wildcard
+      val prefixRoutes = routes.filter(_.path.endsWith("/*"))
+      prefixRoutes.foreach { route =>
+        val prefix = route.path.stripSuffix("/*") + "/"
+        routeRegistry(prefix) = route
+        println(s"[valmuri] Registering prefix route: $prefix (from wildcard ${route.path})")
+        serverCreateContext(prefix, Some(httpServer), new VHttpHandler(route, config))
+      }
+
+      // Finally, register the root fallback context for unmatched paths
+      println("[valmuri] Registering default handler for '/'")
+      serverCreateContext("/", Some(httpServer), new DefaultHandler(routeRegistry.values.toList))
 
       // Start server
       httpServer.start()
+
+      sys.addShutdownHook {
+        println("[valmuri] JVM shutdown hook: stopping HTTP server")
+        httpServer.stop(config.serverShutdownDelay)
+        threadPool.shutdown()
+        if (!threadPool.awaitTermination(config.serverShutdownDelay.toLong, TimeUnit.SECONDS)) {
+          threadPool.shutdownNow()
+        }
+      }
 
       server = Some(httpServer)
       executor = Some(threadPool)

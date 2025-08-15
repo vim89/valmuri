@@ -2,7 +2,7 @@ package hello
 
 import com.vitthalmirji.valmuri.config.VConfig
 import com.vitthalmirji.valmuri.core.VApplication
-import com.vitthalmirji.valmuri.error.VResult
+import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
 import com.vitthalmirji.valmuri.http.{ VRequest, VRoute }
 
 import java.util.concurrent.ConcurrentHashMap
@@ -82,12 +82,12 @@ object DistributedApp extends VApplication {
         nodes.asScala.get(nId) match {
           case Some(node) =>
             val uptime = System.currentTimeMillis() - node.lastSeen
-            VResult.success(s"""{"id":"${node.id}","uptime":${uptime},"status":"active"}""")
+            VResult.success(s"""{"id":"${node.id}","uptime":$uptime,"status":"active"}""")
           case None =>
-            VResult.success(s"""{"error":"Node not found"}""")
+            VResult.failure(ValmuriError.NotFound(s"Node not found: $nId"))
         }
       case None =>
-        VResult.success(s"""{"error":"Node ID required"}""")
+        VResult.failure(ValmuriError.BadRequest("Node ID is required"))
     }
 
   private def renderDashboard(): String = {

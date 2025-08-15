@@ -8,7 +8,7 @@ object HelloApp extends VApplication {
 
   override def routes(): List[VRoute] = List(
     VRoute("/", _ => VResult.success("🎉 Hello from Valmuri!")),
-    VRoute("/api/hello", _ => VResult.success("""{"message": "Hello World!", "framework": "Valmuri"}"""))
+    VRoute("/api/hello", _ => VResult.success("""{"message": "Hello World!", "framework": "Valmuri"}""")),
   )
 }
 

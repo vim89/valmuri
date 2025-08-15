@@ -10,10 +10,14 @@ import com.vitthalmirji.valmuri.error.VResult
  */
 object SpringStyleApp extends VApplication {
 
-  override def routes(): List[VRoute] = List(
-    VRoute("/", _ => VResult.success(s"🎉 Hello from ${getConfig.appName}!")),
-    VRoute("/config", _ => VResult.success(s"""{"port": ${getConfig.serverPort}}"""))
-  )
+  override def routes(): List[VRoute] = {
+    val userService    = new UserServiceImpl
+    val userController = new UserController(userService)
+    List(
+      VRoute("/", _ => VResult.success(s"🎉 Hello from ${getConfig.appName}!")),
+      VRoute("/config", _ => VResult.success(s"""{"port": ${getConfig.serverPort}}"""))
+    ) ++ userController.routes()
+  }
 }
 
 trait UserService {
