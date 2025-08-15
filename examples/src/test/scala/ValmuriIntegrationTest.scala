@@ -64,7 +64,7 @@ class ValmuriIntegrationTest extends FunSuite {
     import scala.sys.process._
 
     // Run the deployment script in test mode
-    val testDir = "/tmp/valmuri-test-" + System.currentTimeMillis()
+    val testDir      = "/tmp/valmuri-test-" + System.currentTimeMillis()
     val deployScript = new java.io.File(s"$rootPath/scripts/deploy.sh")
     if (deployScript.canExecute) {
       val result = s"${deployScript.getPath} $testDir blog".!
@@ -88,7 +88,7 @@ class ValmuriIntegrationTest extends FunSuite {
 
     // Test project generation
     val testProject = "cli-test-" + System.currentTimeMillis()
-    val cliJar = new java.io.File("../cli/target/scala-2.13/valmuri-cli.jar")
+    val cliJar      = new java.io.File("../cli/target/scala-2.13/valmuri-cli.jar")
     if (cliJar.exists()) {
       val result = s"java -jar ${cliJar.getPath} new $testProject --template blog".!
       assertEquals(result, 0)
@@ -126,7 +126,6 @@ class ValmuriIntegrationTest extends FunSuite {
     assert(usedMemory < 50, s"Memory usage was ${usedMemory}MB, should be < 50MB")
   }
 
-  override def afterAll(): Unit = {
+  override def afterAll(): Unit =
     super.afterAll()
-  }
 }

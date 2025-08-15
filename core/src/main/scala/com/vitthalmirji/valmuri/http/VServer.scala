@@ -54,7 +54,6 @@ class VServer(config: VConfig) {
       // Add default handler for 404
       serverCreateContext("/", server, new DefaultHandler(routeRegistry.values.toList))
 
-
       // Start server
       httpServer.start()
 
@@ -77,21 +76,19 @@ class VServer(config: VConfig) {
       executor = None
     })
 
-  private def serverCreateContext(path: String, server: Option[HttpServer], handler: VHttpHandler) = {
-    try {
+  private def serverCreateContext(path: String, server: Option[HttpServer], handler: VHttpHandler) =
+    try
       server.map(_.createContext(path, handler))
-    } catch {
+    catch {
       case iae: IllegalArgumentException if iae.getMessage.contains("cannot add context to list") =>
         println("[valmuri] context \"/\" already registered, skipping")
     }
-  }
 
-  private def serverCreateContext(path: String, server: Option[HttpServer], handler: DefaultHandler) = {
-    try {
+  private def serverCreateContext(path: String, server: Option[HttpServer], handler: DefaultHandler) =
+    try
       server.map(_.createContext(path, handler))
-    } catch {
+    catch {
       case iae: IllegalArgumentException if iae.getMessage.contains("cannot add context to list") =>
         println("[valmuri] context \"/\" already registered, skipping")
     }
-  }
 }

@@ -33,7 +33,7 @@ trait VApplication {
       _      <- initializeFramework()
       _      <- configure()
       routes <- buildAllRoutes()
-      _ <- startServer(routes)
+      _      <- startServer(routes)
       _      <- printStartupInfo(System.currentTimeMillis() - startTime)
     } yield ()
   }
