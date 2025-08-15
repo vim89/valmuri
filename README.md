@@ -11,6 +11,9 @@
 
 Valmuri is a **true full-stack web framework** for Scala that brings the productivity of Django, Rails, and Spring Boot to the Scala ecosystem. Unlike existing Scala libraries, Valmuri is an **integrated framework** where all components work together seamlessly.
 
+**Why name Valmuri?** We picked the name `Valmuri` because - well, why not mix scala with snacks?  The `val` is a nod to Scala’s immutability (because nothing changes, not even your variable), and `muri` is puffed rice - a beloved Indian snack that’s all about crunchy diversity. Just like **_jhalmuri_**, with its spicy mix of puffed rice, mustard oil, veggies, and magic, Valmuri is a crunchy, full-stack mashup of fun and function. Who knew Scala could taste this good?
+
+
 ### The Problem We Solve
 
 **Before Valmuri:**
