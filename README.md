@@ -40,38 +40,105 @@ object MyApp extends VApplication {
 }
 ```
 
+## 🚀 30-Minute Deployment Challenge
+
+Get from zero to production in 30 minutes:
+
+```bash
+# 1. Create project (2 minutes)
+valmuri new my-blog --template blog
+
+# 2. Customize content (5 minutes)  
+cd my-blog
+# Edit posts in src/main/resources/posts/
+
+# 3. Test locally (2 minutes)
+sbt run  # Visit http://localhost:8080
+
+# 4. Deploy to production (21 minutes)
+./deploy.sh  # Automated deployment to Heroku/Railway/Docker
+```
+
+**Result:** Professional blog running in production with your custom content!
+
+## 🚀 Quick Start (< 2 Minutes)
+
+### 1. Install Valmuri CLI
+```bash
+# Download and install CLI
+curl -L https://github.com/vim89/valmuri/releases/latest/download/valmuri-cli.jar -o valmuri-cli.jar
+alias valmuri="java -jar valmuri-cli.jar"
+```
+
+### 2. Create Your First App
+```bash
+# Create a new blog
+valmuri new my-blog --template blog
+cd my-blog
+
+# Or create a simple API
+valmuri new my-api --template api  
+cd my-api
+```
+
+### 3. Run and Develop
+```bash
+# Start development server
+sbt run
+
+# Visit your application
+open http://localhost:8080
+```
+
+### 4. Deploy to Production
+```bash
+# One-command deployment
+./deploy.sh
+
+# Or deploy to specific platform
+./deploy.sh heroku
+./deploy.sh railway
+./deploy.sh docker
+```
+
 ---
 
 ## 🏆 Key Features
 
-### ✅ **Auto-Configuration / Auto DI**
+### ✅ **Auto-configuration / Auto DI**
 - **Zero configuration** - `extends VApplication` gives you everything
 - **Embedded HTTP server** - No external dependencies
 - **Auto-wiring** - Dependency injection works out of the box
 - **Production-ready** - Health checks, metrics, monitoring built-in
 
-### ✅ **True Framework vs Library Collection**
+### ✅ **True framework vs Library collection**
 - **Users learn ONE API** - No need to master ZIO + Doobie + Circe + Config
 - **Integrated components** - HTTP, database, DI, config work together
 - **Convention over configuration** - Sensible defaults, minimal setup
 
-### ✅ **Functional Programming First**
+### ✅ **Functional programming first & Type-safe throughout**
 - **Type-safe** - Compile-time guarantees throughout
 - **Immutable data** - Pure functions and referential transparency
+- **Compile-time guarantees** - Route parameters, JSON serialization, database queries
 - **Monadic error handling** - `VResult[A]` for safe computation chains
 - **Pattern matching** - Leverages Scala's powerful ADTs
+- **No runtime surprises** - Catch errors at compile time
 
-### ✅ **Performance & Simplicity**
+### ✅ **Performance & simplicity**
 - **60x faster startup** than Spring Boot (50ms vs 3000ms)
 - **10x lower memory** usage (25MB vs 250MB)
 - **Zero external dependencies** - Uses JDK built-in HTTP server
 - **Single binary deployment** - Native compilation ready
 
+### ✅ **Developer happiness**
+- **Convention over configuration** - Sensible defaults, minimal setup
+- **Hot reload** - See changes instantly during development
+- **Excellent error messages** - Clear guidance when things go wrong
+- **One-command deployment** - From code to production in minutes
+
 ---
 
-## 🚀 Quick Start (< 2 Minutes)
-
-### 1. Create Your First App
+### 1. Create your First App
 
 ```scala
 // src/main/scala/MyApp.scala
@@ -113,6 +180,64 @@ curl http://localhost:8080/actuator/metrics    # Application metrics
 ```
 
 **Result:** Your app is running with health checks, metrics, and production-ready endpoints!
+
+## 💡 Example Applications
+
+### Personal Blog
+```scala
+object MyBlog extends VApplication {
+  def routes() = List(
+    VRoute("/", _ => VResult.success(renderHomePage())),
+    VRoute("/blog", _ => VResult.success(renderBlogIndex())),
+    VRoute("/blog/:slug", handleBlogPost)
+  ) ++ loadMarkdownPosts()
+  
+  private def handleBlogPost(request: VRequest): VResult[String] = {
+    for {
+      slug <- request.getRequiredParam("slug")
+      post <- loadPost(slug)
+    } yield renderPost(post)
+  }
+}
+```
+
+### REST API Server
+```scala
+object ApiServer extends VApplication {
+  def routes() = List(
+    VRoute.get("/api/users", getAllUsers),
+    VRoute.get("/api/users/:id", getUserById), 
+    VRoute.post("/api/users", createUser),
+    VRoute.put("/api/users/:id", updateUser),
+    VRoute.delete("/api/users/:id", deleteUser)
+  )
+  
+  private def getAllUsers(request: VRequest): VResult[String] = {
+    User.findAll().map(users => Json.toJson(users))
+  }
+}
+```
+
+### Multi-Node Distributed App
+```scala
+object DistributedApp extends VApplication {
+  def routes() = List(
+    VRoute.get("/nodes", listNodes),
+    VRoute.post("/nodes/register", registerNode),
+    VRoute.post("/work/distribute", distributeWork),
+    VRoute.get("/dashboard", renderDashboard)
+  )
+  
+  private def distributeWork(request: VRequest): VResult[String] = {
+    for {
+      availableNodes <- NodeRegistry.getActiveNodes()
+      selectedNode <- selectBestNode(availableNodes)
+      workId <- assignWork(selectedNode)
+    } yield Json.obj("workId" -> workId, "node" -> selectedNode.id)
+  }
+}
+```
+
 
 ---
 
@@ -228,6 +353,17 @@ userResult match {
 
 ### Core Components
 
+```scala
+VApplication    // Main framework trait - auto-configures everything
+VRoute         // Type-safe routing with parameter extraction
+VResult[A]     // Monadic error handling for safe computation
+VServices      // Dependency injection container
+VConfig        // Multi-environment configuration system
+VServer        // Embedded HTTP server (internal)
+VActuator      // Production monitoring endpoints
+```
+
+
 **🔧 VApplication** - The heart of the framework
 - Auto-configures all components
 - Manages application lifecycle
@@ -324,6 +460,28 @@ curl http://localhost:8080/actuator/health
 
 # Stop server
 pkill -f "mill examples.hello.run"
+```
+
+### Comparisons
+- [Valmuri vs Spring Boot](docs/vs-spring-boot.md)
+- [Valmuri vs Django](docs/vs-django.md)
+- [Valmuri vs Play Framework](docs/vs-play.md)
+
+## 🧪 Testing
+
+### Run All Tests
+```bash
+sbt testAll
+```
+
+### Integration Tests
+```bash
+sbt examples/test
+```
+
+### Performance Benchmarks
+```bash
+sbt benchmark/run
 ```
 
 ---
