@@ -1,7 +1,6 @@
 package valmuri.test
 
 import com.vitthalmirji.valmuri.config.VConfig
-import com.vitthalmirji.valmuri.http.{ VRequest, VRoute }
 
 class VApplicationTest extends munit.FunSuite {
   test("VConfig should load with defaults") {
