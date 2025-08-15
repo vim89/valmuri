@@ -1,7 +1,6 @@
 package com.vitthalmirji.valmuri.template
 
-import com.vitthalmirji.valmuri.VResult
-
+import com.vitthalmirji.valmuri.error.VResult
 import scala.io.Source
 import scala.util.Try
 

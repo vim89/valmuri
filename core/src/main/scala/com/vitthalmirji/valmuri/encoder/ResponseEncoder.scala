@@ -1,5 +1,12 @@
 package com.vitthalmirji.valmuri.encoder
 
+/**
+ * Type class for response encoding
+ */
+trait ResponseEncoder[A] {
+  def encode(value: A): String
+}
+
 object ResponseEncoder {
   // Implicit instances for common types
   implicit val stringEncoder: ResponseEncoder[String]   = (value: String) => value
@@ -21,11 +28,4 @@ object ResponseEncoder {
     case Some(value) => implicitly[ResponseEncoder[A]].encode(value)
     case None        => "null"
   }
-}
-
-/**
- * Type class for response encoding
- */
-trait ResponseEncoder[A] {
-  def encode(value: A): String
 }

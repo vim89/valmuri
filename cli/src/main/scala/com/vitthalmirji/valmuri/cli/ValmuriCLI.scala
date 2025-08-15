@@ -26,10 +26,10 @@ object ValmuriCLI {
     Files.createDirectories(projectDir)
 
     template match {
-      case "blog"      => generateBlogProject(projectDir, name)
-      case "api"       => generateApiProject(projectDir, name)
-      case "portfolio" => generatePortfolioProject(projectDir, name)
-      case _           => generateBasicProject(projectDir, name)
+      case "blog" => generateBlogProject(projectDir, name)
+      // case "api"       => generateApiProject(projectDir, name)
+      // case "portfolio" => generatePortfolioProject(projectDir, name)
+      case _ => generateBasicProject(projectDir, name)
     }
 
     println(s"✅ Created $name project")
@@ -46,11 +46,9 @@ object ValmuriCLI {
 
     // Generate main application
     val appContent = s"""
-package ${name.toLowerCase}
-
-import com.vitthalmirji.valmuri._
-
-object ${name.capitalize}App extends VApplication {
+                     package ${name.toLowerCase}
+                     import com.vitthalmirji.valmuri._
+                     object ${name.capitalize}App extends VApplication {
   
   override def routes(): List[VRoute] = List(
     VRoute("/", _ => VResult.success(renderHomePage())),
@@ -84,9 +82,9 @@ object ${name.capitalize}App extends VApplication {
     val posts = loadMarkdownPosts()
     val postsHtml = posts.map(post => 
       s'''<article>
-         <h2><a href="/blog/$${post.slug}">${post.title}</a></h2>
-         <p>${post.excerpt}</p>
-         <time>${post.date}</time>
+         <h2><a href="/blog/$${post.slug}">$${post.title}</a></h2>
+         <p>$${post.excerpt}</p>
+         <time>$${post.date}</time>
        </article>'''
     ).mkString("\\n")
     
@@ -147,13 +145,13 @@ object ${name.capitalize}App extends VApplication {
   private def renderPost(post: BlogPost): String = {
     s'''<!DOCTYPE html>
     <html>
-    <head><title>${post.title} - $name</title></head>
+    <head><title>$${post.title} - $name</title></head>
     <body>
         <nav><a href="/blog">← Back to Blog</a></nav>
         <article>
-            <h1>${post.title}</h1>
-            <time>${post.date}</time>
-            <div class="content">${post.content}</div>
+            <h1>$${post.title}</h1>
+            <time>$${post.date}</time>
+            <div class="content">$${post.content}</div>
         </article>
     </body>
     </html>'''

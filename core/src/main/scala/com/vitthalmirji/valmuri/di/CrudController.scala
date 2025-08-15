@@ -1,7 +1,8 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.di
 
 import com.vitthalmirji.valmuri.encoder.{ JsonEncoder, ResponseEncoder }
-import com.vitthalmirji.valmuri.error.FrameworkError
+import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
+import com.vitthalmirji.valmuri.http.{ VRequest, VRoute }
 
 /**
  * CRUD Controller template with generics and type bounds
@@ -49,7 +50,7 @@ abstract class CrudController[T: JsonEncoder, ID: ResponseEncoder] extends VCont
   private def handleCreate: VRequest => VResult[String] = { req =>
     matchMethod(req)(
       post = for {
-        body    <- req.body.fold(VResult.failure[String](FrameworkError.MissingParameter("body")))(VResult.success)
+        body    <- req.body.fold(VResult.failure[String](ValmuriError.MissingParameter("body")))(VResult.success)
         entity  <- parseEntity(body)
         created <- create(entity)
         result  <- json(created)
@@ -62,7 +63,7 @@ abstract class CrudController[T: JsonEncoder, ID: ResponseEncoder] extends VCont
       put = for {
         idStr   <- req.getRequiredParam("id")
         id      <- parseId(idStr)
-        body    <- req.body.fold(VResult.failure[String](FrameworkError.MissingParameter("body")))(VResult.success)
+        body    <- req.body.fold(VResult.failure[String](ValmuriError.MissingParameter("body")))(VResult.success)
         entity  <- parseEntity(body)
         updated <- update(id, entity)
         result  <- json(updated)

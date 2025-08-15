@@ -1,9 +1,8 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.error
 
-import com.vitthalmirji.valmuri.error.FrameworkError
-import scala.concurrent.{ Future, ExecutionContext, Await }
 import scala.concurrent.duration.Duration
-import scala.util.{ Try, Success, Failure }
+import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Monadic result type for error handling
@@ -20,13 +19,13 @@ sealed trait VResult[+A] { self =>
     case err @ VResult.Failure(_) => err
   }
 
-  def recover[B >: A](f: PartialFunction[FrameworkError, B]): VResult[B] = self match {
+  def recover[B >: A](f: PartialFunction[ValmuriError, B]): VResult[B] = self match {
     case VResult.Success(value)                         => VResult.Success(value)
     case VResult.Failure(error) if f.isDefinedAt(error) => VResult.Success(f(error))
     case err @ VResult.Failure(_)                       => err
   }
 
-  def recoverWith[B >: A](f: PartialFunction[FrameworkError, VResult[B]]): VResult[B] = self match {
+  def recoverWith[B >: A](f: PartialFunction[ValmuriError, VResult[B]]): VResult[B] = self match {
     case VResult.Success(value)                         => VResult.Success(value)
     case VResult.Failure(error) if f.isDefinedAt(error) => f(error)
     case err @ VResult.Failure(_)                       => err
@@ -42,7 +41,7 @@ sealed trait VResult[+A] { self =>
     case VResult.Failure(_)           => alternative
   }
 
-  def fold[B](onFailure: FrameworkError => B)(onSuccess: A => B): B = self match {
+  def fold[B](onFailure: ValmuriError => B)(onSuccess: A => B): B = self match {
     case VResult.Success(value) => onSuccess(value)
     case VResult.Failure(error) => onFailure(error)
   }
@@ -55,7 +54,7 @@ sealed trait VResult[+A] { self =>
     case VResult.Failure(_)     => None
   }
 
-  def toEither: Either[FrameworkError, A] = self match {
+  def toEither: Either[ValmuriError, A] = self match {
     case VResult.Success(value) => Right(value)
     case VResult.Failure(error) => Left(error)
   }
@@ -67,23 +66,23 @@ sealed trait VResult[+A] { self =>
 }
 
 object VResult {
-  final case class Success[+A](value: A)          extends VResult[A]
-  final case class Failure(error: FrameworkError) extends VResult[Nothing]
+  final case class Success[+A](value: A)        extends VResult[A]
+  final case class Failure(error: ValmuriError) extends VResult[Nothing]
 
   // Constructors
-  def success[A](value: A): VResult[A]              = Success(value)
-  def failure[A](error: FrameworkError): VResult[A] = Failure(error)
+  def success[A](value: A): VResult[A]            = Success(value)
+  def failure[A](error: ValmuriError): VResult[A] = Failure(error)
 
   // From other types
   def fromTry[A](t: Try[A]): VResult[A] = t match {
     case scala.util.Success(value) => Success(value)
-    case scala.util.Failure(ex)    => Failure(FrameworkError.UnexpectedError(ex.getMessage))
+    case scala.util.Failure(ex)    => Failure(ValmuriError.UnexpectedError(ex.getMessage))
   }
 
-  def fromOption[A](opt: Option[A], error: => FrameworkError): VResult[A] =
+  def fromOption[A](opt: Option[A], error: => ValmuriError): VResult[A] =
     opt.fold[VResult[A]](Failure(error))(Success(_))
 
-  def fromEither[A](either: Either[FrameworkError, A]): VResult[A] = either match {
+  def fromEither[A](either: Either[ValmuriError, A]): VResult[A] = either match {
     case Right(value) => Success(value)
     case Left(error)  => Failure(error)
   }

@@ -1,14 +1,17 @@
 package hello
 
-import com.vitthalmirji.valmuri._
+import com.vitthalmirji.valmuri.config.VConfig
+import com.vitthalmirji.valmuri.core.VApplication
+import com.vitthalmirji.valmuri.error.{VResult, ValmuriError}
+import com.vitthalmirji.valmuri.http.{HttpMethod, VRequest, VRoute}
 
 object PersonalSite extends VApplication {
 
   override def configure(): VResult[Unit] =
     // Register any custom services
-    VResult.success(())
+    VResult.success(VConfig.load())
 
-  def routes(): List[VRoute] = List(
+  override def routes(): List[VRoute] = List(
     // Home page
     VRoute("/", _ => VResult.success(renderHomePage())),
 
@@ -20,7 +23,7 @@ object PersonalSite extends VApplication {
 
     // Contact form
     VRoute("/contact", handleContactPage),
-    VRoute.simple("/contact-submit", handleContactSubmit),
+    VRoute("/contact-submit", handleContactSubmit),
 
     // Resume download
     VRoute("/resume.pdf", _ => VResult.success("Resume content here")),
@@ -387,7 +390,7 @@ object PersonalSite extends VApplication {
     request.method match {
       case HttpMethod.GET  => VResult.success(renderContactForm())
       case HttpMethod.POST => handleContactSubmit(request)
-      case _               => VResult.failure(FrameworkError.RoutingError("Method not allowed"))
+      case _               => VResult.failure(ValmuriError.RoutingError("Method not allowed"))
     }
 
   private def renderContactForm(): String =

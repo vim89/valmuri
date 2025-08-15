@@ -18,7 +18,7 @@ object ProjectGenerator {
       case "blog" => generateBlogProject(projectDir, name)
       // case "api" => generateApiProject(projectDir, name)
       // case "portfolio" => generatePortfolioProject(projectDir, name)
-      case _ => generateBasicProject(projectDir, name)
+      // case _ => generateBasicProject(projectDir, name)
     }
 
     println(s"✅ Created $name project with $template template")
@@ -139,40 +139,4 @@ fi
     val deployScript = projectDir.resolve("deploy.sh").toFile
     deployScript.setExecutable(true)
   }
-}
-
-// CLI Main class
-object ValmuriCLI {
-  def main(args: Array[String]): Unit =
-    args.toList match {
-      case "new" :: name :: Nil =>
-        ProjectGenerator.generateProject(name)
-
-      case "new" :: name :: "--template" :: template :: Nil =>
-        ProjectGenerator.generateProject(name, template)
-
-      case "help" :: Nil =>
-        printHelp()
-
-      case _ =>
-        println("Unknown command. Try 'valmuri help'")
-    }
-
-  private def printHelp(): Unit =
-    println("""
-Valmuri CLI v0.1.0
-
-Usage:
-  valmuri new <name>                    Create new project
-  valmuri new <name> --template <type>  Create project with template
-
-Templates:
-  blog       Personal blog with markdown support
-  api        REST API server
-  portfolio  Portfolio/personal site
-
-Examples:
-  valmuri new my-blog
-  valmuri new my-api --template api
-    """)
 }

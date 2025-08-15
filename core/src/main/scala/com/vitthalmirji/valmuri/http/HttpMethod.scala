@@ -1,4 +1,9 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.http
+
+/**
+ * HTTP methods as ADT (Algebraic Data Type)
+ */
+sealed trait HttpMethod extends Product with Serializable
 
 object HttpMethod {
   case object GET extends HttpMethod
@@ -24,8 +29,3 @@ object HttpMethod {
     case _         => GET // Default fallback
   }
 }
-
-/**
- * HTTP methods as ADT (Algebraic Data Type)
- */
-sealed trait HttpMethod extends Product with Serializable

@@ -1,6 +1,9 @@
 package hello
 
-import com.vitthalmirji.valmuri.{ VApplication, VController, VResult, VRoute }
+import com.vitthalmirji.valmuri.core.VApplication
+import com.vitthalmirji.valmuri.di.VController
+import com.vitthalmirji.valmuri.http.VRoute
+import com.vitthalmirji.valmuri.error.VResult
 
 /**
  * Spring Boot style - everything auto-configured!

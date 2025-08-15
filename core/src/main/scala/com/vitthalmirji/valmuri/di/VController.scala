@@ -1,10 +1,11 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.di
 
 import com.vitthalmirji.valmuri.encoder.{ JsonEncoder, ResponseEncoder }
-import com.vitthalmirji.valmuri.error.FrameworkError
+import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
+import com.vitthalmirji.valmuri.http.{ HttpMethod, VRequest, VRoute }
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
  * Enhanced controller base class with type classes and functional programming
@@ -28,31 +29,36 @@ abstract class VController {
     VResult.success(implicitly[ResponseEncoder[A]].encode(content))
 
   protected def notFound(message: String = "Not Found"): VResult[String] =
-    VResult.failure(FrameworkError.RoutingError(message))
+    VResult.failure(ValmuriError.RoutingError(message))
 
   protected def badRequest(message: String): VResult[String] =
-    VResult.failure(FrameworkError.InvalidParameter("request", message))
+    VResult.failure(ValmuriError.InvalidParameter("request", message))
 
   protected def error(message: String): VResult[String] =
-    VResult.failure(FrameworkError.UnexpectedError(message))
+    VResult.failure(ValmuriError.UnexpectedError(message))
 
   // Async action support
   protected def async[A: ResponseEncoder](action: AsyncAction[A]): ControllerAction[String] = { req =>
-    VResult.fromFuture(action(req).map(_.map(implicitly[ResponseEncoder[A]].encode))).get
+    VResult.fromFuture(
+      action(req).map {
+        case VResult.Success(a)   => implicitly[ResponseEncoder[A]].encode(a)
+        case VResult.Failure(err) => throw new RuntimeException(err.message)
+      }
+    )
   }
 
   // Pattern matching for request method routing
   protected def matchMethod[A](request: VRequest)(
-    get: => VResult[A] = VResult.failure(FrameworkError.RoutingError("GET not supported")),
-    post: => VResult[A] = VResult.failure(FrameworkError.RoutingError("POST not supported")),
-    put: => VResult[A] = VResult.failure(FrameworkError.RoutingError("PUT not supported")),
-    delete: => VResult[A] = VResult.failure(FrameworkError.RoutingError("DELETE not supported"))
+    get: => VResult[A] = VResult.failure(ValmuriError.RoutingError("GET not supported")),
+    post: => VResult[A] = VResult.failure(ValmuriError.RoutingError("POST not supported")),
+    put: => VResult[A] = VResult.failure(ValmuriError.RoutingError("PUT not supported")),
+    delete: => VResult[A] = VResult.failure(ValmuriError.RoutingError("DELETE not supported"))
   ): VResult[A] =
     request.method match {
       case HttpMethod.GET    => get
       case HttpMethod.POST   => post
       case HttpMethod.PUT    => put
       case HttpMethod.DELETE => delete
-      case _                 => VResult.failure(FrameworkError.RoutingError(s"Method ${request.method} not supported"))
+      case _                 => VResult.failure(ValmuriError.RoutingError(s"Method ${request.method} not supported"))
     }
 }

@@ -1,79 +1,13 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.handler
 
-import com.sun.net.httpserver.{ HttpExchange, HttpHandler, HttpServer }
+import com.sun.net.httpserver.{ HttpExchange, HttpHandler }
 import com.vitthalmirji.valmuri.config.VConfig
-import com.vitthalmirji.valmuri.error.FrameworkError
+import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
+import com.vitthalmirji.valmuri.http.{ HttpMethod, VRequest, VRoute }
 
 import java.io.InputStream
-import java.net.InetSocketAddress
-import java.util.concurrent.{ Executors, ThreadPoolExecutor, TimeUnit }
-import scala.collection.mutable
-import scala.jdk.CollectionConverters._
-import scala.util.{ Try, Using }
-
-/**
- * Production-ready HTTP server
- */
-class VServer(config: VConfig) {
-
-  private var server: Option[HttpServer]           = None
-  private var executor: Option[ThreadPoolExecutor] = None
-  private val routeRegistry                        = mutable.Map[String, VRoute]()
-
-  def start(routes: List[VRoute]): VResult[Unit] =
-    VResult.fromTry(Try {
-      // Create thread pool
-      val threadPool = Executors
-        .newFixedThreadPool(
-          config.serverThreads,
-          (r: Runnable) => {
-            val t = new Thread(r, s"valmuri-http-${Thread.activeCount()}")
-            t.setDaemon(true)
-            t
-          }
-        )
-        .asInstanceOf[ThreadPoolExecutor]
-
-      // Create HTTP server
-      val httpServer = HttpServer.create(
-        new InetSocketAddress(config.serverHost, config.serverPort),
-        config.serverBacklog
-      )
-
-      // Configure server
-      httpServer.setExecutor(threadPool)
-
-      // Register routes
-      routes.foreach { route =>
-        routeRegistry(route.path) = route
-        httpServer.createContext(route.path, new VHttpHandler(route, config))
-      }
-
-      // Add default handler for 404
-      httpServer.createContext("/", new DefaultHandler(routeRegistry.keys.toList))
-
-      // Start server
-      httpServer.start()
-
-      server = Some(httpServer)
-      executor = Some(threadPool)
-    })
-
-  def stop(): VResult[Unit] =
-    VResult.fromTry(Try {
-      server.foreach(s => s.stop(config.serverShutdownDelay))
-
-      executor.foreach { e =>
-        e.shutdown()
-        if (!e.awaitTermination(config.serverShutdownDelay.toLong, TimeUnit.SECONDS)) {
-          e.shutdownNow()
-        }
-      }
-
-      server = None
-      executor = None
-    })
-}
+import scala.jdk.CollectionConverters.{ CollectionHasAsScala, MapHasAsScala }
+import scala.util.Using
 
 /**
  * HTTP request handler
@@ -95,11 +29,11 @@ class VHttpHandler(route: VRoute, config: VConfig) extends HttpHandler {
 
         case VResult.Failure(error) =>
           val (status, message) = error match {
-            case FrameworkError.NotFound(_)     => (404, error.message)
-            case FrameworkError.BadRequest(_)   => (400, error.message)
-            case FrameworkError.Unauthorized(_) => (401, error.message)
-            case FrameworkError.Forbidden(_)    => (403, error.message)
-            case _                              => (500, "Internal Server Error")
+            case ValmuriError.NotFound(_)     => (404, error.message)
+            case ValmuriError.BadRequest(_)   => (400, error.message)
+            case ValmuriError.Unauthorized(_) => (401, error.message)
+            case ValmuriError.Forbidden(_)    => (403, error.message)
+            case _                            => (500, "Internal Server Error")
           }
           sendResponse(exchange, status, errorJson(message))
       }
@@ -109,9 +43,10 @@ class VHttpHandler(route: VRoute, config: VConfig) extends HttpHandler {
     }
 
   private def parseRequest(exchange: HttpExchange): VRequest = {
-    val method = exchange.getRequestMethod
-    val uri    = exchange.getRequestURI
-    val path   = uri.getPath
+    val method     = exchange.getRequestMethod
+    val httpMethod = HttpMethod.fromString(method)
+    val uri        = exchange.getRequestURI
+    val path       = uri.getPath
 
     // Parse query parameters
     val queryParams = Option(uri.getQuery).fold(Map.empty[String, String]) { query =>
@@ -144,10 +79,9 @@ class VHttpHandler(route: VRoute, config: VConfig) extends HttpHandler {
     val pathParams = extractPathParams(route.path, path)
 
     VRequest(
-      method = method,
+      method = httpMethod,
       path = path,
-      queryParams = queryParams,
-      pathParams = pathParams,
+      params = queryParams ++ pathParams,
       headers = headers,
       body = body
     )
@@ -212,26 +146,4 @@ class VHttpHandler(route: VRoute, config: VConfig) extends HttpHandler {
 
   private def errorJson(message: String): String =
     s"""{"error":"${message.replace("\"", "\\\"")}","timestamp":"${java.time.Instant.now()}"}"""
-}
-
-/**
- * Default 404 handler
- */
-class DefaultHandler(knownPaths: List[String]) extends HttpHandler {
-  override def handle(exchange: HttpExchange): Unit = {
-    val path        = exchange.getRequestURI.getPath
-    val suggestions = knownPaths.filter(_.contains(path.split("/").last)).take(3)
-
-    val response = s"""{
-      "error": "Not Found",
-      "path": "$path",
-      "suggestions": [${suggestions.map(s => s""""$s"""").mkString(",")}]
-    }"""
-
-    exchange.getResponseHeaders.add("Content-Type", "application/json")
-    val bytes = response.getBytes("UTF-8")
-    exchange.sendResponseHeaders(404, bytes.length.toLong)
-
-    Using.resource(exchange.getResponseBody)(output => output.write(bytes))
-  }
 }

@@ -1,11 +1,10 @@
 package com.vitthalmirji.valmuri.template
 
-import com.vitthalmirji.valmuri.{ VResult, VRoute }
+import com.vitthalmirji.valmuri.error.VResult
+import com.vitthalmirji.valmuri.http.VRoute
 
 import java.nio.file.{ Files, Paths }
 import scala.jdk.CollectionConverters._
-
-case class BlogPost(title: String, content: String, date: String, slug: String)
 
 object VBlog {
 

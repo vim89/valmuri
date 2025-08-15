@@ -1,7 +1,9 @@
 package com.vitthalmirji.valmuri.handler
 
 import com.sun.net.httpserver.{ HttpExchange, HttpHandler }
-import com.vitthalmirji.valmuri.VRoute
+import com.vitthalmirji.valmuri.http.VRoute
+
+import scala.util.Using
 
 /**
  * Default handler for unmatched routes

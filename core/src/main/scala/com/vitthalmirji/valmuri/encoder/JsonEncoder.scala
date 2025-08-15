@@ -1,5 +1,12 @@
 package com.vitthalmirji.valmuri.encoder
 
+/**
+ * Type class for JSON encoding (simplified)
+ */
+trait JsonEncoder[A] {
+  def toJson(value: A): String
+}
+
 object JsonEncoder {
   // Basic JSON encoders
   implicit val stringJsonEncoder: JsonEncoder[String]   = (value: String) => s""""$value""""
@@ -35,11 +42,4 @@ object JsonEncoder {
     case null       => "null"
     case other      => s""""${other.toString}""""
   }
-}
-
-/**
- * Type class for JSON encoding (simplified)
- */
-trait JsonEncoder[A] {
-  def toJson(value: A): String
 }

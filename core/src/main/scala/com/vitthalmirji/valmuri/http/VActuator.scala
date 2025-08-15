@@ -1,10 +1,10 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.http
 
 import java.lang.management.ManagementFactory
 import java.time.Instant
 
 /**
- * Production-ready endpoints like Spring Boot Actuator
+ * Production-ready endpoints
  */
 class VActuator {
   private val startTime = Instant.now()

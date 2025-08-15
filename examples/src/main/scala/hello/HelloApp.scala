@@ -1,7 +1,8 @@
 package hello
 
-import com.vitthalmirji.valmuri.{ VApplication, VRoute }
-import com.vitthalmirji.valmuri.VResult
+import com.vitthalmirji.valmuri.core.VApplication
+import com.vitthalmirji.valmuri.error.VResult
+import com.vitthalmirji.valmuri.http.VRoute
 
 object HelloApp extends VApplication {
 

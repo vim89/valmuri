@@ -1,7 +1,7 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.http
 
-import com.vitthalmirji.valmuri.HttpMethod.{ DELETE, GET, POST, PUT }
-import com.vitthalmirji.valmuri.error.FrameworkError
+import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
+import com.vitthalmirji.valmuri.http.HttpMethod.{ DELETE, GET, POST, PUT }
 
 import scala.util.Try
 
@@ -42,7 +42,7 @@ case class VRequest(
   def getRequiredParam(key: String): VResult[String] =
     params.get(key) match {
       case Some(value) => VResult.success(value)
-      case None        => VResult.failure(FrameworkError.MissingParameter(key))
+      case None        => VResult.failure(ValmuriError.MissingParameter(key))
     }
 
   // Type-safe parameter extraction
@@ -50,6 +50,12 @@ case class VRequest(
     getRequiredParam(key).flatMap { value =>
       VResult
         .fromTry(Try(value.toInt))
-        .mapError(_ => FrameworkError.InvalidParameter(key, "Expected integer"))
+        .flatMap { s =>
+          try VResult.success(s.toInt)
+          catch {
+            case _: NumberFormatException =>
+              VResult.failure(ValmuriError.InvalidParameter(key, "Expected integer"))
+          }
+        }
     }
 }

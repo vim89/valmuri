@@ -1,6 +1,7 @@
 package com.vitthalmirji.valmuri.config
 
-import com.vitthalmirji.valmuri.{ VActuator, VServices }
+import com.vitthalmirji.valmuri.di.VServices
+import com.vitthalmirji.valmuri.http.VActuator
 
 /**
  * Autoconfiguration system like Spring Boot

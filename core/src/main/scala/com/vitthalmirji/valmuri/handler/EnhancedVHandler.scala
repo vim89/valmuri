@@ -2,7 +2,8 @@ package com.vitthalmirji.valmuri.handler
 
 import com.sun.net.httpserver.{ HttpExchange, HttpHandler }
 import com.vitthalmirji.valmuri._
-import com.vitthalmirji.valmuri.error.FrameworkError
+import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
+import com.vitthalmirji.valmuri.http.{ HttpMethod, VRequest, VRoute }
 
 import scala.util.Try
 
@@ -84,15 +85,15 @@ class EnhancedVHandler(route: VRoute) extends HttpHandler {
   private def sendSuccessResponse(exchange: HttpExchange, content: String): Unit =
     sendResponse(exchange, 200, content, getContentType(content))
 
-  private def sendErrorResponse(exchange: HttpExchange, error: FrameworkError): Unit = {
+  private def sendErrorResponse(exchange: HttpExchange, error: ValmuriError): Unit = {
     val (statusCode, content) = error match {
-      case FrameworkError.MissingParameter(_) | FrameworkError.InvalidParameter(_, _) =>
+      case ValmuriError.MissingParameter(_) | ValmuriError.InvalidParameter(_, _) =>
         (400, createErrorJson(error))
-      case FrameworkError.RoutingError(_) =>
+      case ValmuriError.RoutingError(_) =>
         (404, createErrorJson(error))
-      case FrameworkError.ConfigError(_) | FrameworkError.ServiceError(_) =>
+      case ValmuriError.ConfigError(_) | ValmuriError.ServiceError(_) =>
         (500, createErrorJson(error))
-      case FrameworkError.UnexpectedError(_) =>
+      case ValmuriError.UnexpectedError(_) =>
         (500, createErrorJson(error))
       case other =>
         (500, createErrorJson(other))
@@ -132,7 +133,7 @@ class EnhancedVHandler(route: VRoute) extends HttpHandler {
       case _                                                    => "text/plain"
     }
 
-  private def createErrorJson(error: FrameworkError): String =
+  private def createErrorJson(error: ValmuriError): String =
     s"""{
       "error": "${error.code}",
       "message": "${error.message}",

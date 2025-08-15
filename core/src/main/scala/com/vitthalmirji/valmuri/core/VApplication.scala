@@ -1,6 +1,10 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.core
 
 import com.vitthalmirji.valmuri.config.{ VAutoConfig, VConfig }
+import com.vitthalmirji.valmuri.di.VServices
+import com.vitthalmirji.valmuri.error.VResult
+import com.vitthalmirji.valmuri.http.{ VRoute, VServer }
+import com.vitthalmirji.valmuri.error.ValmuriError.RoutingError
 
 import scala.reflect.ClassTag
 import scala.util.Try
@@ -12,7 +16,7 @@ trait VApplication {
 
   // Lazy initialization for better startup performance
   private lazy val services: VServices     = new VServices()
-  private lazy val config: VConfig         = loadConfiguration()
+  protected lazy val config: VConfig       = loadConfiguration()
   private lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
 
   // User overrides
@@ -59,9 +63,7 @@ trait VApplication {
   private def buildStaticRoutes(): VResult[List[VRoute]] =
     if (config.staticDir.isDefined) {
       VResult.success(
-        List(
-          VRoute.static("/static/*", config.staticDir.get)
-        )
+        List(VRoute("/static/*", _ => VResult.fromOption(config.staticDir, RoutingError("Invalid route"))))
       )
     } else {
       VResult.success(List.empty)

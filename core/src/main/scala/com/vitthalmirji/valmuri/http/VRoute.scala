@@ -1,5 +1,8 @@
-package com.vitthalmirji.valmuri
+package com.vitthalmirji.valmuri.http
 
+import com.vitthalmirji.valmuri.error.VResult
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object VRoute {
