@@ -3,8 +3,7 @@
 > **Fullstack scala** - Full-stack web framework with auto-configuration, dependency injection, and functional programming
 
 [![Scala Version](https://img.shields.io/badge/scala-2.13.16-red.svg)](https://scala-lang.org/)
-[![Build, Unit & Integration tests](https://github.com/vim89/valmuri/actions/workflows/ci.yml/badge.svg)](https://github.com/vim89/valmuri/actions/workflows/ci.yml)
-
+[![Build, Unit & Integration tests](https://github.com/vim89/valmuri/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/vim89/valmuri/actions/workflows/ci.yml)
 ---
 
 ## 🎯 What is Valmuri?
