@@ -87,8 +87,10 @@ object VResult {
     case Left(error)  => Failure(error)
   }
 
-  def fromFuture[A](future: Future[A], timeout: Duration = Duration.Inf)(implicit ec: ExecutionContext): VResult[A] =
+  def fromFuture[A](future: Future[A], timeout: Duration = Duration.Inf)(implicit ec: ExecutionContext): VResult[A] = {
+    println(s"Using context ${ec.toString}")
     fromTry(Try(Await.result(future, timeout)))
+  }
 
   // Sequence operations
   def sequence[A](results: List[VResult[A]]): VResult[List[A]] =

@@ -10,8 +10,8 @@ import scala.util.Try
  * Lightweight dependency injection container
  */
 class VServices {
-  private val services  = mutable.Map[Class[_], Any]()
-  private val factories = mutable.Map[Class[_], () => Any]()
+  private val services  = mutable.Map[Class[?], Any]()
+  private val factories = mutable.Map[Class[?], () => Any]()
 
   /**
    * Register a service instance

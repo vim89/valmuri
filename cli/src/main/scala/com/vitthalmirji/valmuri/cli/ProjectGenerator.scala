@@ -1,6 +1,6 @@
 package com.vitthalmirji.valmuri.cli
 
-import java.nio.file.{ Files, Paths, StandardOpenOption }
+import java.nio.file.{ Files, Paths }
 
 object ProjectGenerator {
 

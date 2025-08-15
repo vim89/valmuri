@@ -19,13 +19,15 @@ ThisBuild / developers := List(
 Test / javaOptions += s"-Dproject.root=${(ThisBuild / baseDirectory).value.getAbsolutePath}"
 
 lazy val commonSettings = Seq(
-  scalacOptions ++= Seq(
-    "-deprecation",
-    "-feature",
-    "-unchecked",
-    "-encoding", "UTF-8",
-    "-Xfatal-warnings"
-  ),
+
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) =>
+        Seq("-deprecation", "-feature", "-unchecked", "-Xlint", "-encoding", "UTF-8") // remove -Werror etc.
+      case _ =>
+        Seq("-deprecation", "-feature", "-unchecked", "-Xlint", "-encoding", "UTF-8", "-Xfatal-warnings")
+    }
+  },
   javacOptions ++= Seq("-source", "21", "-target", "21"),
   Test / fork := true,
   libraryDependencies ++= Seq(

@@ -78,8 +78,8 @@ object DistributedApp extends VApplication {
 
   private def handleNodeStatus(request: VRequest): VResult[String] =
     request.params.get("id") match {
-      case Some(nodeId) =>
-        nodes.asScala.get(nodeId) match {
+      case Some(nId) =>
+        nodes.asScala.get(nId) match {
           case Some(node) =>
             val uptime = System.currentTimeMillis() - node.lastSeen
             VResult.success(s"""{"id":"${node.id}","uptime":${uptime},"status":"active"}""")

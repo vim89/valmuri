@@ -19,9 +19,6 @@ class VServer(config: VConfig) {
   private var executor: Option[ThreadPoolExecutor] = None
   private val routeRegistry                        = mutable.Map[String, VRoute]()
 
-  // Prevent duplicate context registration for the same path
-  private val registeredContextPaths = scala.collection.mutable.Set.empty[String]
-
   def start(routes: List[VRoute]): VResult[Unit] =
     VResult.fromTry(Try {
       // Create thread pool
