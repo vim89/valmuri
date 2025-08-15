@@ -1,7 +1,7 @@
 ThisBuild / version := "0.1.0"
 ThisBuild / organization := "com.vitthalmirji"
 ThisBuild / scalaVersion := "2.13.16"
-ThisBuild / crossScalaVersions := Seq("2.13.16", "3.3.3")
+ThisBuild / crossScalaVersions := Seq("2.13.16", "3.7.1")
 
 // Publishing settings for eventual Maven Central release
 ThisBuild / homepage := Some(url("https://github.com/vim89/valmuri"))
@@ -16,6 +16,8 @@ ThisBuild / developers := List(
 )
 
 // Common settings
+Test / javaOptions += s"-Dproject.root=${(ThisBuild / baseDirectory).value.getAbsolutePath}"
+
 lazy val commonSettings = Seq(
   scalacOptions ++= Seq(
     "-deprecation",
@@ -24,8 +26,12 @@ lazy val commonSettings = Seq(
     "-encoding", "UTF-8",
     "-Xfatal-warnings"
   ),
-  javacOptions ++= Seq("-source", "11", "-target", "11"),
-  Test / fork := true
+  javacOptions ++= Seq("-source", "21", "-target", "21"),
+  Test / fork := true,
+  libraryDependencies ++= Seq(
+    "org.scalameta" %% "munit" % "1.1.1" % Test
+  ),
+  testFrameworks += new TestFramework("munit.Framework")
 )
 
 // Core framework
@@ -34,10 +40,6 @@ lazy val core = (project in file("core"))
   .settings(
     name := "valmuri-core",
     description := "Valmuri framework core - Full-stack Scala web framework",
-    libraryDependencies ++= Seq(
-      "org.scalameta" %% "munit" % "0.7.29" % Test
-    ),
-    testFrameworks += new TestFramework("munit.Framework")
   )
 
 // CLI tools

@@ -45,7 +45,7 @@ case class VConfig(
 object VConfig {
 
   def load(): VConfig = {
-    val profile = sys.env.getOrElse("VALMURI_ENV", sys.props.getOrElse("valmuri.env", "development"))
+    val profile = sys.env.getOrElse("VALMURI_ENV", sys.props.getOrElse("valmuri.env", "dev"))
 
     println(s"📋 Loading configuration for profile: $profile")
 

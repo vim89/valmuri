@@ -19,6 +19,9 @@ class VServer(config: VConfig) {
   private var executor: Option[ThreadPoolExecutor] = None
   private val routeRegistry                        = mutable.Map[String, VRoute]()
 
+  // Prevent duplicate context registration for the same path
+  private val registeredContextPaths = scala.collection.mutable.Set.empty[String]
+
   def start(routes: List[VRoute]): VResult[Unit] =
     VResult.fromTry(Try {
       // Create thread pool
@@ -45,11 +48,12 @@ class VServer(config: VConfig) {
       // Register routes
       routes.foreach { route =>
         routeRegistry(route.path) = route
-        httpServer.createContext(route.path, new VHttpHandler(route, config))
+        serverCreateContext(route.path, server, new VHttpHandler(route, config))
       }
 
       // Add default handler for 404
-      httpServer.createContext("/", new DefaultHandler(routeRegistry.values.toList))
+      serverCreateContext("/", server, new DefaultHandler(routeRegistry.values.toList))
+
 
       // Start server
       httpServer.start()
@@ -72,4 +76,22 @@ class VServer(config: VConfig) {
       server = None
       executor = None
     })
+
+  private def serverCreateContext(path: String, server: Option[HttpServer], handler: VHttpHandler) = {
+    try {
+      server.map(_.createContext(path, handler))
+    } catch {
+      case iae: IllegalArgumentException if iae.getMessage.contains("cannot add context to list") =>
+        println("[valmuri] context \"/\" already registered, skipping")
+    }
+  }
+
+  private def serverCreateContext(path: String, server: Option[HttpServer], handler: DefaultHandler) = {
+    try {
+      server.map(_.createContext(path, handler))
+    } catch {
+      case iae: IllegalArgumentException if iae.getMessage.contains("cannot add context to list") =>
+        println("[valmuri] context \"/\" already registered, skipping")
+    }
+  }
 }

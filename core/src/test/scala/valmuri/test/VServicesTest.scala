@@ -1,8 +1,5 @@
 package valmuri.test
 
-// src/test/scala/valmuri/VServicesTest.scala
-package valmuri
-
 import com.vitthalmirji.valmuri.di.VServices
 
 class VServicesTest extends munit.FunSuite {

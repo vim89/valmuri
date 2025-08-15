@@ -1,5 +1,4 @@
 #!/bin/bash
-# File: scripts/30min-deploy.sh
 
 set -e  # Exit on any error
 
