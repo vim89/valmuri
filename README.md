@@ -14,7 +14,7 @@ Valmuri is a **true full-stack web framework** for Scala that brings the product
 **Why name Valmuri?** We picked the name `Valmuri` because - well, why not mix scala with snacks?  The `val` is a nod to Scala’s immutability (because nothing changes, not even your variable), and `muri` is puffed rice - a beloved Indian snack that’s all about crunchy diversity. Just like **_jhalmuri_**, with its spicy mix of puffed rice, mustard oil, veggies, and magic, Valmuri is a crunchy, full-stack mashup of fun and function. Who knew Scala could taste this good?
 
 
-### The Problem We Solve
+### The Problem we solve
 
 **Before Valmuri:**
 ```scala
@@ -40,7 +40,7 @@ object MyApp extends VApplication {
 }
 ```
 
-## 🚀 30-Minute Deployment Challenge
+## 🚀 30-Minute deployment challenge
 
 Get from zero to production in 30 minutes:
 
@@ -61,7 +61,7 @@ sbt run  # Visit http://localhost:8080
 
 **Result:** Professional blog running in production with your custom content!
 
-## 🚀 Quick Start (< 2 Minutes)
+## 🚀 Quick start (< 2 Minutes)
 
 ### 1. Install Valmuri CLI
 ```bash
@@ -70,7 +70,7 @@ curl -L https://github.com/vim89/valmuri/releases/latest/download/valmuri-cli.ja
 alias valmuri="java -jar valmuri-cli.jar"
 ```
 
-### 2. Create Your First App
+### 2. Create your first app
 ```bash
 # Create a new blog
 valmuri new my-blog --template blog
@@ -81,7 +81,7 @@ valmuri new my-api --template api
 cd my-api
 ```
 
-### 3. Run and Develop
+### 3. Run and develop
 ```bash
 # Start development server
 sbt run
@@ -90,7 +90,7 @@ sbt run
 open http://localhost:8080
 ```
 
-### 4. Deploy to Production
+### 4. Deploy to production
 ```bash
 # One-command deployment
 ./deploy.sh
@@ -103,7 +103,7 @@ open http://localhost:8080
 
 ---
 
-## 🏆 Key Features
+## 🏆 Key features
 
 ### ✅ **Auto-configuration / Auto DI**
 - **Zero configuration** - `extends VApplication` gives you everything
@@ -138,7 +138,7 @@ open http://localhost:8080
 
 ---
 
-### 1. Create your First App
+### 1. Create your first app
 
 ```scala
 // src/main/scala/MyApp.scala
@@ -159,7 +159,7 @@ object Main {
 }
 ```
 
-### 2. Run It
+### 2. Run
 
 ```bash
 # Clone the repository
@@ -170,7 +170,7 @@ cd valmuri
 mill examples.hello.run
 ```
 
-### 3. Test It
+### 3. Test
 
 ```bash
 curl http://localhost:8080/                    # Welcome message
@@ -181,9 +181,9 @@ curl http://localhost:8080/actuator/metrics    # Application metrics
 
 **Result:** Your app is running with health checks, metrics, and production-ready endpoints!
 
-## 💡 Example Applications
+## 💡 Example applications
 
-### Personal Blog
+### Personal blog
 ```scala
 object MyBlog extends VApplication {
   def routes() = List(
@@ -201,7 +201,7 @@ object MyBlog extends VApplication {
 }
 ```
 
-### REST API Server
+### REST API server
 ```scala
 object ApiServer extends VApplication {
   def routes() = List(
@@ -218,7 +218,7 @@ object ApiServer extends VApplication {
 }
 ```
 
-### Multi-Node Distributed App
+### Multi-node distributed app
 ```scala
 object DistributedApp extends VApplication {
   def routes() = List(
@@ -241,7 +241,7 @@ object DistributedApp extends VApplication {
 
 ---
 
-## 📊 Framework Comparison
+## 📊 Framework comparison
 
 | Feature | Spring Boot | Django | Rails | **Valmuri** |
 |---------|-------------|--------|-------|-------------|
@@ -255,9 +255,9 @@ object DistributedApp extends VApplication {
 
 ---
 
-## 💡 Developer Experience
+## 💡 Developer experience
 
-### Simple Routes (Beginner-Friendly)
+### Simple routes (Beginner-friendly)
 ```scala
 object SimpleApp extends VApplication {
   def routes() = List(
@@ -267,7 +267,7 @@ object SimpleApp extends VApplication {
 }
 ```
 
-### Dependency Injection (When You Need It)
+### Dependency Injection (When you need it)
 ```scala
 // Define services
 trait UserService {
@@ -297,7 +297,7 @@ object DIApp extends VApplication {
 }
 ```
 
-### Configuration (Spring Boot Style)
+### Configuration (Spring boot style)
 ```properties
 # application.properties
 server.port=8080
@@ -332,7 +332,7 @@ userResult match {
 
 ## 🏗️ Architecture
 
-### Framework Layers
+### Framework layers
 ```
 ┌─────────────────────────────────────────┐
 │           User Application              │
@@ -351,7 +351,7 @@ userResult match {
 └─────────────────────────────────────────┘
 ```
 
-### Core Components
+### Core components
 
 ```scala
 VApplication    // Main framework trait - auto-configures everything
@@ -403,7 +403,7 @@ VActuator      // Production monitoring endpoints
 - **SBT build tool** (or Mill)
 - **Scala 2.13.16**
 
-### Build Commands
+### Build commands
 ```bash
 # Compile framework
 sbt +compile
@@ -412,7 +412,7 @@ sbt +compile
 sbt +test
 ```
 
-### Project Structure
+### Project structure
 ```
 valmuri/
 ├── src/main/scala/valmuri/
@@ -436,7 +436,7 @@ valmuri/
 
 ## 🧪 Testing
 
-### Unit Tests
+### Unit tests
 ```scala
 class VApplicationTest extends munit.FunSuite {
   test("VRoute should handle simple request") {
@@ -449,7 +449,7 @@ class VApplicationTest extends munit.FunSuite {
 }
 ```
 
-### Integration Tests
+### Integration tests
 ```bash
 # Start test server
 sbt runMain examples.hello &
@@ -469,24 +469,24 @@ pkill -f "mill examples.hello.run"
 
 ## 🧪 Testing
 
-### Run All Tests
+### Run All tests
 ```bash
 sbt testAll
 ```
 
-### Integration Tests
+### Integration tests
 ```bash
 sbt examples/test
 ```
 
-### Performance Benchmarks
+### Performance benchmarks
 ```bash
 sbt benchmark/run
 ```
 
 ---
 
-## 🎯 Current Status & Roadmap
+## 🎯 Current status & Roadmap
 - [x] Spring Boot-style auto-configuration
 - [x] Embedded HTTP server (zero dependencies)
 - [x] Dependency injection with auto-wiring
@@ -502,7 +502,7 @@ sbt benchmark/run
 
 We welcome contributions! Here's how to get started:
 
-### 1. Development Setup
+### 1. Development setup
 ```bash
 git clone https://github.com/vim89/valmuri.git
 cd valmuri
@@ -511,7 +511,7 @@ sbt clean +test
 ```
 ---
 
-## 📚 Examples & Tutorials
+## 📚 Examples & tutorials
 
 ### Example 1: Simple API
 ```scala
@@ -524,7 +524,7 @@ object ApiApp extends VApplication {
 }
 ```
 
-### Example 2: JSON API with Services
+### Example 2: JSON API with services
 ```scala
 trait WeatherService {
   def getCurrentWeather(): String
@@ -545,7 +545,7 @@ object WeatherApp extends VApplication {
 }
 ```
 
-### Example 3: Configuration-Driven App
+### Example 3: Configuration-driven App
 ```scala
 object ConfigApp extends VApplication {
   def routes() = List(
