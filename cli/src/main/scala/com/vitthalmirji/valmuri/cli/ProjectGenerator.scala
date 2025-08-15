@@ -1,6 +1,6 @@
 package com.vitthalmirji.valmuri.cli
 
-import java.nio.file.{Files, Paths, StandardOpenOption}
+import java.nio.file.{ Files, Paths, StandardOpenOption }
 
 object ProjectGenerator {
 
@@ -143,7 +143,7 @@ fi
 
 // CLI Main class
 object ValmuriCLI {
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     args.toList match {
       case "new" :: name :: Nil =>
         ProjectGenerator.generateProject(name)
@@ -157,9 +157,8 @@ object ValmuriCLI {
       case _ =>
         println("Unknown command. Try 'valmuri help'")
     }
-  }
 
-  private def printHelp(): Unit = {
+  private def printHelp(): Unit =
     println("""
 Valmuri CLI v0.1.0
 
@@ -176,5 +175,4 @@ Examples:
   valmuri new my-blog
   valmuri new my-api --template api
     """)
-  }
 }

@@ -1,9 +1,9 @@
 package com.vitthalmirji.valmuri.cli
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{ Files, Paths }
 
 object ValmuriCLI {
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     args.toList match {
       case "new" :: name :: Nil =>
         generateProject(name, "basic")
@@ -20,17 +20,16 @@ object ValmuriCLI {
       case _ =>
         println("Unknown command. Use 'valmuri help' for usage.")
     }
-  }
 
   def generateProject(name: String, template: String): Unit = {
     val projectDir = Paths.get(name)
     Files.createDirectories(projectDir)
 
     template match {
-      case "blog" => generateBlogProject(projectDir, name)
-      case "api" => generateApiProject(projectDir, name)
+      case "blog"      => generateBlogProject(projectDir, name)
+      case "api"       => generateApiProject(projectDir, name)
       case "portfolio" => generatePortfolioProject(projectDir, name)
-      case _ => generateBasicProject(projectDir, name)
+      case _           => generateBasicProject(projectDir, name)
     }
 
     println(s"✅ Created $name project")
@@ -351,7 +350,7 @@ libraryDependencies += "com.vitthalmirji" %% "valmuri-core" % "0.1.0"
     "sbt ~run".!
   }
 
-  private def printHelp(): Unit = {
+  private def printHelp(): Unit =
     println("""
 Valmuri CLI v0.1.0 - Full-stack Scala web framework
 
@@ -376,5 +375,4 @@ cd my-blog
 sbt run                    # Start development server
 ./deploy.sh               # Deploy to production
 """)
-  }
 }

@@ -4,16 +4,15 @@ import com.vitthalmirji.valmuri._
 
 object PersonalSite extends VApplication {
 
-  override def configure(): VResult[Unit] = {
+  override def configure(): VResult[Unit] =
     // Register any custom services
     VResult.success(())
-  }
 
   def routes(): List[VRoute] = List(
     // Home page
     VRoute("/", _ => VResult.success(renderHomePage())),
 
-    // About page  
+    // About page
     VRoute("/about", _ => VResult.success(renderAboutPage())),
 
     // Projects showcase
@@ -245,7 +244,7 @@ object PersonalSite extends VApplication {
 </html>"""
   }
 
-  private def renderAboutPage(): String = {
+  private def renderAboutPage(): String =
     """<!DOCTYPE html>
 <html>
 <head>
@@ -294,9 +293,8 @@ object PersonalSite extends VApplication {
     </div>
 </body>
 </html>"""
-  }
 
-  private def renderProjectsPage(): String = {
+  private def renderProjectsPage(): String =
     """<!DOCTYPE html>
 <html>
 <head><title>Projects - Vitthal Mirji</title></head>
@@ -384,17 +382,15 @@ object PersonalSite extends VApplication {
     </style>
 </body>
 </html>"""
-  }
 
-  private def handleContactPage(request: VRequest): VResult[String] = {
+  private def handleContactPage(request: VRequest): VResult[String] =
     request.method match {
-      case HttpMethod.GET => VResult.success(renderContactForm())
+      case HttpMethod.GET  => VResult.success(renderContactForm())
       case HttpMethod.POST => handleContactSubmit(request)
-      case _ => VResult.failure(FrameworkError.RoutingError("Method not allowed"))
+      case _               => VResult.failure(FrameworkError.RoutingError("Method not allowed"))
     }
-  }
 
-  private def renderContactForm(): String = {
+  private def renderContactForm(): String =
     """<!DOCTYPE html>
 <html>
 <head><title>Contact - Vitthal Mirji</title></head>
@@ -450,9 +446,8 @@ object PersonalSite extends VApplication {
     </div>
 </body>
 </html>"""
-  }
 
-  private def handleContactSubmit(request: VRequest): VResult[String] = {
+  private def handleContactSubmit(request: VRequest): VResult[String] =
     // In a real implementation, this would send email or save to database
     VResult.success("""
 <!DOCTYPE html>
@@ -466,9 +461,8 @@ object PersonalSite extends VApplication {
     </div>
 </body>
 </html>""")
-  }
 
-  private def renderBlogIndex(): String = {
+  private def renderBlogIndex(): String =
     """<!DOCTYPE html>
 <html>
 <head><title>Blog - Vitthal Mirji</title></head>
@@ -489,9 +483,8 @@ object PersonalSite extends VApplication {
     </article>
 </body>
 </html>"""
-  }
 
-  private def renderValmuriBlogPost(): String = {
+  private def renderValmuriBlogPost(): String =
     """<!DOCTYPE html>
 <html>
 <head><title>Building Valmuri: A Rails for Scala</title></head>
@@ -539,9 +532,8 @@ object PersonalSite extends VApplication {
     </article>
 </body>
 </html>"""
-  }
 
-  private def renderScalaBlogPost(): String = {
+  private def renderScalaBlogPost(): String =
     """<!DOCTYPE html>
 <html>
 <head><title>The State of Scala Web Development in 2025</title></head>
@@ -578,9 +570,8 @@ object PersonalSite extends VApplication {
     </article>
 </body>
 </html>"""
-  }
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit =
     start() match {
       case VResult.Success(_) =>
         println("✅ Personal site running at http://localhost:8080")
@@ -590,5 +581,4 @@ object PersonalSite extends VApplication {
       case VResult.Failure(error) =>
         println(s"❌ Failed to start: ${error.message}")
     }
-  }
 }

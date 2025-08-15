@@ -7,18 +7,17 @@ import scala.util.Try
 
 object VTemplate {
 
-  def render(templateName: String, variables: Map[String, Any] = Map.empty): VResult[String] = {
+  def render(templateName: String, variables: Map[String, Any] = Map.empty): VResult[String] =
     VResult.fromTry(Try {
       val templatePath = s"src/main/resources/templates/$templateName"
-      val template = Source.fromFile(templatePath).mkString
+      val template     = Source.fromFile(templatePath).mkString
 
       variables.foldLeft(template) { case (tmpl, (key, value)) =>
         tmpl.replace(s"{{$key}}", value.toString)
       }
     })
-  }
 
-  def renderMarkdown(content: String): String = {
+  def renderMarkdown(content: String): String =
     // Simple markdown rendering (basic implementation)
     content
       .replaceAll("^# (.*)", "<h1>$1</h1>")
@@ -26,5 +25,4 @@ object VTemplate {
       .replaceAll("\\*\\*(.*?)\\*\\*", "<strong>$1</strong>")
       .replaceAll("\\*(.*?)\\*", "<em>$1</em>")
       .replaceAll("\\n", "<br>")
-  }
 }

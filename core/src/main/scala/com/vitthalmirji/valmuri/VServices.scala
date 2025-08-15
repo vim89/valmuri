@@ -20,14 +20,12 @@ class VServices {
     VResult.success(())
   }
 
-  def register[T](service: T)(implicit classTag: ClassTag[T]): VResult[Unit] = {
+  def register[T](service: T)(implicit classTag: ClassTag[T]): VResult[Unit] =
     VResult.fromTry(Try {
       val clazz = classTag.runtimeClass
       services(clazz) = service
       println(s"📦 Registered service: ${clazz.getSimpleName}")
     })
-  }
-
 
   /**
    * Register a service factory (lazy instantiation)
@@ -65,7 +63,7 @@ class VServices {
     val clazz = classTag.runtimeClass
     services.get(clazz) match {
       case Some(service) => service.asInstanceOf[T]
-      case None => throw new RuntimeException(s"Service not found: ${clazz.getSimpleName}")
+      case None          => throw new RuntimeException(s"Service not found: ${clazz.getSimpleName}")
     }
   }
 
@@ -75,9 +73,8 @@ class VServices {
   def getSafe[T: ClassTag]: VResult[T] =
     VResult.fromTry(scala.util.Try(get[T]))
 
-  def getSafe[T](implicit classTag: ClassTag[T]): VResult[T] = {
+  def getSafe[T](implicit classTag: ClassTag[T]): VResult[T] =
     VResult.fromTry(Try(get[T]))
-  }
 
   /**
    * Check if service exists
