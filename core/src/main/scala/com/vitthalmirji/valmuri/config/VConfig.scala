@@ -106,7 +106,14 @@ object VConfig {
     }
   }
 
-  private def loadSystemProperties(props: Properties): Unit =
+  private def loadSystemProperties(props: Properties): Unit = {
+    // Handle direct system properties first
+    sys.props.get("server.port").foreach { port =>
+      props.setProperty("server.port", port)
+      println(s"  ✓ System property override: server.port=$port")
+    }
+
+    // Then handle valmuri.* properties
     sys.props.foreach { case (key, value) =>
       if (key.startsWith("valmuri.")) {
         val propKey = key.substring(8).replace("-", ".")
@@ -114,6 +121,7 @@ object VConfig {
         println(s"  ✓ System property: $key")
       }
     }
+  }
 
   private def buildConfig(props: Properties, profile: String): VConfig = {
     def get(key: String, default: String): String =
