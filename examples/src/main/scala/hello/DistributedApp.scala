@@ -1,7 +1,7 @@
 package hello
 
 import com.vitthalmirji.valmuri.config.VConfig
-import com.vitthalmirji.valmuri.core.VApplication
+import com.vitthalmirji.valmuri.core.VApplicationEnhanced
 import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
 import com.vitthalmirji.valmuri.http.{ VRequest, VRoute }
 
@@ -10,7 +10,7 @@ import scala.jdk.CollectionConverters._
 
 case class Node(id: String, host: String, port: Int, lastSeen: Long)
 
-object DistributedApp extends VApplication {
+object DistributedApp extends VApplicationEnhanced {
 
   private val nodes  = new ConcurrentHashMap[String, Node]()
   private val nodeId = java.util.UUID.randomUUID().toString

@@ -1,11 +1,11 @@
 package hello
 
 import com.vitthalmirji.valmuri.config.VConfig
-import com.vitthalmirji.valmuri.core.VApplication
+import com.vitthalmirji.valmuri.core.VApplicationEnhanced
 import com.vitthalmirji.valmuri.error.{ VResult, ValmuriError }
 import com.vitthalmirji.valmuri.http.{ HttpMethod, VRequest, VRoute }
 
-object PersonalSite extends VApplication {
+object PersonalSite extends VApplicationEnhanced {
 
   override def configure(): VResult[Unit] =
     // Register any custom services
