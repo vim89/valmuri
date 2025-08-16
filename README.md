@@ -101,6 +101,141 @@ open http://localhost:8080
 ```
 
 ---
+## Inspiration and Golden Paths
+
+Valmuri is built with the lessons of the giants in mind. The goal is not to re-implement Spring, Rails, or Django in Scala, but to bring the best ideas from those ecosystems into a lightweight, functional package.
+
+### Inspirations
+
+* **From Spring Boot**
+
+  * Embedded server – apps run without Tomcat/Jetty setup.
+  * *Embedded HTTP server*: Just like Spring Boot apps ship with Tomcat/Jetty embedded, Valmuri apps spin up directly on JDK HttpServer — no container or external server required.
+  * Health and metrics endpoints built in.
+  * Environment-based config, similar to `application.properties` with profiles.
+  * Lifecycle management and dependency injection (in spirit, but leaner).
+  * *Actuator-style endpoints*: Valmuri exposes `/health` and `/metrics` out of the box. That’s a very Spring-y move — production readiness built in.
+  * *Profiles & config*: Spring’s “application.properties” with profiles inspired your `VConfig` and environment-based overrides.
+  * *Auto-wiring*: Spring made DI and lifecycle hooks normal; Valmuri borrows the spirit but keeps it functional and lighter.
+
+* **From Rails**
+
+  * Convention over configuration – extend `VApplication` and go.
+  * CLI workflow for scaffolding and deployment.
+  * Environment separation (`development`, `test`, `production`).
+  * *Convention over configuration*: Valmuri’s “just extend `VApplication` and declare routes” is Rails-like — a single convention gets you from nothing to a running app.
+  * *Generators & CLI workflow*: Rails has `rails new` and `rails generate`. Your `ValmuriCLI` plus `deploy.sh` are your analog — they scaffold   projects, wire config, even prep a Dockerfile.
+  * *Environments*: Rails normalized `development/test/production`; Valmuri carries the same idea through profiles.
+
+* **From Django**
+
+  * One CLI to rule them all – like `manage.py`, Valmuri ships with `valmuri`.
+  * Apps as modular units (see `PersonalSite`, `DistributedApp`).
+  * Batteries included – from hot reload to health checks to deploy scaffolding.
+  * *One management entrypoint*: Django’s `manage.py` inspired the CLI philosophy — one binary for scaffold, run, build, deploy.
+  * *Apps as units*: In Django, an app bundles routes, models, templates. Valmuri’s modules (`PersonalSite`, `DistributedApp`) follow a similar bundling of logic, routes, and config.
+  * *Batteries included*: Django gave you admin, ORM, templates all together. Valmuri echoes that spirit with hot reload, config, health/metrics, deploy scaffolding, even though it stays leaner. 
+
+---
+
+### Golden Path A: Personal site in 30 Minutes
+
+Spin up a personal blog or static site:
+
+```bash
+valmuri new personal-site
+valmuri run
+```
+
+* Edit routes and content in `PersonalSite.scala`.
+* Hot reload gives instant feedback.
+* Deploy to production with:
+
+```bash
+./scripts/deploy.sh
+```
+
+At this point you’ve got a site live, with `/health` and `/metrics` ready for production monitoring.
+
+---
+
+### Golden Path B: Distributed App
+
+Build a multi-node service that discovers peers automatically:
+
+```bash
+valmuri new distributed-application
+valmuri run --node-id 1 --port 8080
+valmuri run --node-id 2 --port 8081 --join http://localhost:8080
+```
+
+Nodes now connect and share work. The APIs force you to think about cluster lifecycle and configuration but keep defaults simple.
+
+---
+
+### Why this matters
+
+Whether you’re hacking together a personal blog or standing up a distributed system, Valmuri gives you the developer joy of Rails/Django and the production-readiness of Spring Boot – without the baggage. The goal: zero to prod in about half an hour.
+
+---
+
+## Making something real and letting it shape the APIs
+
+We already ship two excellent forcing examples:
+* **`PersonalSite.scala`** – a minimal blog/static site app.
+* **`DistributedApp.scala`** – demonstrates multi-node behavior.
+* **`ValmuriCLI.scala`** – lets a user scaffold, run, and deploy.
+* **`deploy.sh`** – wires up sbt, Main, Docker, so “push to prod” is one script away.
+
+These already prove your claim: *a new user can spin up a site/blog and deploy within \~30 minutes*.
+
+### The "Personal Site" flow (golden path A)
+
+* `valmuri new personal-site` (scaffold)
+* `valmuri run` (starts local server with hot reload)
+* Add routes and markdown pages → `PersonalSite.scala` shows how.
+* `./scripts/deploy.sh` (builds Docker, deploys to server/container registry).
+
+This path shows off: routes DSL, content rendering, config profiles, CLI automation. It informs APIs like:
+
+* `VRoute` DSL must stay terse and readable (`GET("/", handler)`).
+* Config needs to be simple for blog-style apps.
+* CLI must provide `new`, `run`, `deploy` as first-class verbs.
+
+### The "Distributed App" flow (golden path B)
+
+* `valmuri new distributed`
+* `valmuri run --node-id 1 --port 8080`
+* `valmuri run --node-id 2 --port 8081 --join http://localhost:8080`
+* Nodes discover each other and share routes/work.
+
+This path forces clarity around:
+
+* How nodes join and talk (API ergonomics around cluster config).
+* How lifecycle hooks manage distributed resources.
+* CLI arguments (`--node-id`, `--join`) must be obvious defaults.
+
+---
+
+## 3. The "30 minutes to prod" story
+
+Because you already combine:
+
+* **CLI scaffolding** (`ValmuriCLI`)
+* **Hot reload** (good DX)
+* **Examples** (`PersonalSite`, `DistributedApp`)
+* **Deploy script** (Docker + sbt build)
+* **Health/metrics** (prod sanity check)
+
+...a new user really *can*:
+
+1. Scaffold an app.
+2. Run locally with hot reload.
+3. Deploy with `deploy.sh` (or a wrapped CLI command).
+
+That’s the Django/Rails/Spring experience distilled into Scala’s functional world - and that’s the sweet spot Valmuri already inhabits.
+
+---
 
 ## 🏆 Key features
 
@@ -344,7 +479,7 @@ userResult match {
 │  • VResult (Monadic error handling)     │
 ├─────────────────────────────────────────┤
 │         Internal Layer                  │
-│  • VServer (HTTP server)               │
+│  • VServer (HTTP server)                │
 │  • VConfig (Configuration system)       │
 │  • VActuator (Production endpoints)     │
 └─────────────────────────────────────────┘
