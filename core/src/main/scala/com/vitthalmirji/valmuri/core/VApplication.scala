@@ -15,9 +15,9 @@ import scala.util.Try
 trait VApplication {
 
   // Lazy initialization for better startup performance
-  private lazy val services: VServices     = new VServices()
-  protected lazy val config: VConfig       = loadConfiguration()
-  private lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
+  protected lazy val services: VServices     = new VServices()
+  protected lazy val config: VConfig         = loadConfiguration()
+  protected lazy val autoConfig: VAutoConfig = new VAutoConfig(config, services)
 
   // User overrides
   def routes(): List[VRoute] = List.empty
@@ -25,7 +25,7 @@ trait VApplication {
   def configure(): VResult[Unit] = VResult.success(())
 
   // Main entry point
-  final def start(): VResult[Unit] = {
+  def start(): VResult[Unit] = {
     val startTime = System.currentTimeMillis()
 
     for {
